@@ -12,6 +12,22 @@ with what really happened.
 
 Early stage: the scenario generator comes first.
 
+## The simulated world
+
+`world/stream.py` generates the data. A seed fixes everything: which features
+matter, the shape of the true decision boundary, and the rows drawn at each
+step. There are six features, two of which carry no signal, and four classes,
+one of them rare. The boundary has a small quadratic term, so a linear model
+can get close to it but cannot fit it exactly.
+
+Each world is then calibrated so that the best possible classifier reaches the
+same accuracy and the classes keep the same frequencies, whatever the seed.
+Two seeds give two differently shaped worlds that are equally hard.
+
+The rows of a step depend only on the seed and the step number. Any step can be
+regenerated on its own, and adding a new source of randomness later will not
+change rows that were already drawn.
+
 ## Setup
 
 You need [uv](https://docs.astral.sh/uv/). It installs the Python version
@@ -20,6 +36,7 @@ pinned in `.python-version` and exactly the packages listed in
 
 ```bash
 make env     # create the environment
+make test    # run the tests
 make help    # list the targets
 ```
 

@@ -2,7 +2,7 @@
 VENV ?= $(HOME)/.venvs/driftgate
 PY := $(VENV)/bin/python
 
-.PHONY: help env
+.PHONY: help env test
 
 help:  ## every target, one line each
 	@grep -E '^[a-z][a-z-]*:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-8s %s\n", $$1, $$2}'
@@ -15,3 +15,6 @@ $(VENV)/pyvenv.cfg: .python-version
 $(VENV)/.synced: $(VENV)/pyvenv.cfg requirements.txt
 	uv pip sync --quiet --python $(PY) requirements.txt
 	touch $@
+
+test: env  ## run the tests
+	$(PY) -m pytest -q
