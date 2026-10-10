@@ -10,7 +10,7 @@ ROWS = 100
 CALIBRATION_ROWS = 50_000
 
 # don't renumber, every seed would give different data
-GEOMETRY, CALIBRATION, X, Y = range(4)
+GEOMETRY, CALIBRATION, X, Y, SCRIPT, CHANGE = range(6)
 
 
 def softmax(s, axis=1):
@@ -44,10 +44,15 @@ class World:
         v = x[:, :INFORMATIVE]
         return softmax(v @ self.w + (v * v) @ self.q + self.b)
 
+    def draws(self, step, n=ROWS):
+        """the random numbers behind one step: z of shape (n, FEATURES), u of shape (n,)."""
+        z = np.random.default_rng([self.seed, X, step]).standard_normal((n, FEATURES))
+        u = np.random.default_rng([self.seed, Y, step]).random(n)
+        return z, u
+
     def batch(self, step, n=ROWS):
         """(x, y) for one step. only depends on the seed and the step."""
-        x = np.random.default_rng([self.seed, X, step]).standard_normal((n, FEATURES))
-        u = np.random.default_rng([self.seed, Y, step]).random(n)
+        x, u = self.draws(step, n)
         return x, label(self.proba(x), u)
 
 

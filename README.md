@@ -28,6 +28,23 @@ The rows of a step depend only on the seed and the step number. Any step can be
 regenerated on its own, and adding a new source of randomness later will not
 change rows that were already drawn.
 
+## Scenarios
+
+`world/scenarios.py` adds one change to a world: a seed, a kind of change, the
+step where it happens and how strong it is. Before that step the rows are
+exactly those of the stationary world.
+
+Every scenario has a twin with the same seed and no change. Both use the same
+random numbers, so their rows can be compared one by one and whatever differs
+comes from the change.
+
+Kinds so far:
+
+- `none` is the control, nothing happens.
+- `covariate` moves the mean of one feature. How labels depend on the inputs
+  stays the same. If the feature is one of the two without signal, the inputs
+  drift and every label stays what it would have been.
+
 ## Setup
 
 You need [uv](https://docs.astral.sh/uv/). It installs the Python version
