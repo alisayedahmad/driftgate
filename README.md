@@ -12,6 +12,22 @@ with what really happened.
 
 Early stage: the scenario generator comes first.
 
+## Setup
+
+You need [uv](https://docs.astral.sh/uv/). It installs the Python version
+pinned in `.python-version` and exactly the packages listed in
+`requirements.txt`.
+
+```bash
+make env     # create the environment
+make help    # list the targets
+```
+
+The environment is created in `~/.venvs/driftgate`, outside the repository. On
+WSL2 the repository can live on a Windows drive, but a virtualenv there is very
+slow because it is made of thousands of small files. Set `VENV=...` to put it
+somewhere else.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
