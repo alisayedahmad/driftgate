@@ -44,6 +44,12 @@ Kinds so far:
 - `covariate` moves the mean of one feature. How labels depend on the inputs
   stays the same. If the feature is one of the two without signal, the inputs
   drift and every label stays what it would have been.
+- `concept` changes how labels depend on the inputs: the informative features
+  are rotated before the labels are drawn. The inputs themselves don't move,
+  and since they are spread evenly in every direction, neither do the class
+  frequencies or the best possible accuracy. Only a model trained before the
+  change pays for it. The size of the change is the accuracy that the old best
+  classifier loses.
 
 ## Setup
 
