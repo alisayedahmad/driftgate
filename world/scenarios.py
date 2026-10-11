@@ -35,6 +35,8 @@ class Scenario:
     size: float = 0.0
 
     def __post_init__(self):
+        if not 0 <= self.seed < 2**32:
+            raise ValueError(f"seed must be in [0, 2**32), got {self.seed}")
         if self.kind not in KINDS:
             raise ValueError(f"unknown kind {self.kind!r}, expected one of {KINDS}")
         if (self.at is None) != (self.kind == "none"):
@@ -45,6 +47,8 @@ class Scenario:
         """step in AT and size in SIZES[kind], both drawn from the seed (inclusive)."""
         if kind == "none":
             return cls(seed)
+        if kind not in SIZES:
+            raise ValueError(f"unknown kind {kind!r}, expected one of {KINDS}")
         g = np.random.default_rng([seed, SCRIPT])
         return cls(seed, kind, int(g.integers(AT[0], AT[1] + 1)), float(g.uniform(*SIZES[kind])))
 

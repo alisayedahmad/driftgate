@@ -126,6 +126,10 @@ def test_bad_scripts_are_refused():
     with pytest.raises(ValueError):
         Scenario(0, "drift", at=10)
     with pytest.raises(ValueError):
+        Scenario.draw(0, "drift")
+    with pytest.raises(ValueError):
+        Scenario.draw(2**32, "covariate")
+    with pytest.raises(ValueError):
         Scenario(0, "covariate")
     with pytest.raises(ValueError):
         Scenario(0, "none", at=10)
