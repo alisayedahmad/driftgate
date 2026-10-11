@@ -14,7 +14,7 @@ PLANES = 10
 
 
 @cache
-def world(seed):
+def _world(seed):
     return World(seed)
 
 
@@ -58,7 +58,7 @@ class Scenario:
 
     @property
     def world(self):
-        return world(self.seed)
+        return _world(self.seed)
 
     def twin(self):
         return Scenario(self.seed)

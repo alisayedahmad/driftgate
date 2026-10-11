@@ -24,12 +24,12 @@ def test_a_step_depends_only_on_seed_and_step():
 
 def test_calibration_holds_on_fresh_rows(worlds):
     x = np.random.default_rng(12345).standard_normal((200_000, FEATURES))
-    k = np.sqrt(1 / CALIBRATION_ROWS + 1 / len(x))
+    tol = 5 * np.sqrt(1 / CALIBRATION_ROWS + 1 / len(x))
     for w in worlds:
         p = w.proba(x)
         best = p.max(axis=1)
-        assert np.all(np.abs(p.mean(axis=0) - PRIORS) < 5 * k * p.std(axis=0))
-        assert abs(best.mean() - BAYES) < 5 * k * best.std()
+        assert np.all(np.abs(p.mean(axis=0) - PRIORS) < tol * p.std(axis=0))
+        assert abs(best.mean() - BAYES) < tol * best.std()
 
 
 def test_labels_follow_proba(worlds):

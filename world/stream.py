@@ -80,31 +80,31 @@ def _calibrate(r):
                 return p.max(axis=0).mean() - BAYES
             # clipped newton step, unclipped it diverged on 10 seeds out of 200
             j = np.diagflat(m) - p @ p.T / p.shape[1]
-            step = np.linalg.lstsq(j, PRIORS[:, None] - m, rcond=None)[0]
+            delta = np.linalg.lstsq(j, PRIORS[:, None] - m, rcond=None)[0]
             # j is singular along a constant shift of b, lstsq sometimes keeps a big one
-            step -= step.mean()
-            b = b + np.clip(step, -3, 3)
+            delta -= delta.mean()
+            b = b + np.clip(delta, -3, 3)
         raise RuntimeError(f"priors did not converge at scale {scale}")
 
-    lo, flo = 0.0, PRIORS.max() - BAYES
-    hi, fhi = 1.0, gap(1.0)
-    while fhi < 0:
-        lo, flo, hi = hi, fhi, 2 * hi
-        fhi = gap(hi)
+    lo, gap_lo = 0.0, PRIORS.max() - BAYES
+    hi, gap_hi = 1.0, gap(1.0)
+    while gap_hi < 0:
+        lo, gap_lo, hi = hi, gap_hi, 2 * hi
+        gap_hi = gap(hi)
     # illinois method
     side = 0
     for _ in range(50):
-        mid = (lo * fhi - hi * flo) / (fhi - flo)
-        f = gap(mid)
-        if abs(f) < 1e-5:
+        mid = (lo * gap_hi - hi * gap_lo) / (gap_hi - gap_lo)
+        gap_mid = gap(mid)
+        if abs(gap_mid) < 1e-5:
             break
-        if f < 0:
-            lo, flo = mid, f
-            fhi = fhi / 2 if side < 0 else fhi
+        if gap_mid < 0:
+            lo, gap_lo = mid, gap_mid
+            gap_hi = gap_hi / 2 if side < 0 else gap_hi
             side = -1
         else:
-            hi, fhi = mid, f
-            flo = flo / 2 if side > 0 else flo
+            hi, gap_hi = mid, gap_mid
+            gap_lo = gap_lo / 2 if side > 0 else gap_lo
             side = 1
     else:
         raise RuntimeError("bayes accuracy did not converge")
