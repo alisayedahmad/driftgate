@@ -85,6 +85,13 @@ CSV, next to a plot of them.
 bytes. The same data and config give the same bytes, in any process and with
 any number of threads, so a model can be known by the hash of those bytes.
 
+## Traceability
+
+`spine/store.py` keeps bytes under the sha256 of their content, in a single
+SQLite file. Storing the same thing twice keeps one copy, and reading checks
+the bytes against their hash, so a damaged artifact is refused rather than
+loaded.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
