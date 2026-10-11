@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from world.scenarios import AT, SIZES, Scenario
-from world.stream import BAYES, CALIBRATION_ROWS, CHANGE, FEATURES, INFORMATIVE, PRIORS
+from world.stream import BAYES, CALIBRATION_ROWS, CHANGE, FEATURES, INFORMATIVE, PRIORS, label
 
 KINDS = ["covariate", "concept", "noise"]
 
@@ -25,8 +25,15 @@ def fresh():
 def test_draw_depends_only_on_the_seed(kind):
     s = Scenario.draw(3, kind)
     assert s == Scenario.draw(3, kind)
+    assert s != Scenario.draw(4, kind)
     assert AT[0] <= s.at <= AT[1]
     assert SIZES[kind][0] <= s.size <= SIZES[kind][1]
+
+
+def test_draw_reaches_both_ends_of_the_step_range():
+    steps = [Scenario.draw(seed, "covariate").at for seed in range(5000)]
+    assert min(steps) == AT[0]
+    assert max(steps) == AT[1]
 
 
 @pytest.mark.parametrize("kind", KINDS)
@@ -40,13 +47,13 @@ def test_rows_match_the_twin_before_the_change(kind):
 
 
 def test_covariate_shift_moves_the_inputs_only():
-    s = covariate(3)
+    s = next(s for s in map(covariate, range(100)) if s.shift[:INFORMATIVE].any())
     assert np.count_nonzero(s.shift) == 1
-    x, _ = s.batch(s.at)
+    x, y = s.batch(s.at)
     tx, _ = s.twin().batch(s.at)
     assert np.array_equal(x, tx + s.shift)
-    z = np.random.default_rng(0).standard_normal((500, FEATURES))
-    assert np.array_equal(s.proba(z, s.at), s.twin().proba(z, s.at))
+    _, u = s.world.draws(s.at)
+    assert np.array_equal(y, label(s.world.proba(x), u))
 
 
 def test_shifting_a_column_without_signal_keeps_every_label():

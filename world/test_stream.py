@@ -39,6 +39,11 @@ def test_labels_follow_proba(worlds):
     freq = np.bincount(y, minlength=CLASSES) / len(y)
     se = np.sqrt((p * (1 - p)).mean(axis=0) / len(y))
     assert np.all(np.abs(freq - p.mean(axis=0)) < 5 * se)
+    # per row too: if y ~ p(x), the mean of p(x)[y] is the mean of sum p(x)^2
+    hit = p[np.arange(len(y)), y]
+    square = (p * p).sum(axis=1)
+    se = np.sqrt(((p**3).sum(axis=1) - square**2).mean() / len(y))
+    assert abs(hit.mean() - square.mean()) < 5 * se
 
 
 def test_uninformative_features_do_not_change_proba(worlds):
