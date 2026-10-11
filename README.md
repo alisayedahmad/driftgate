@@ -79,6 +79,12 @@ possible accuracy, the accuracy of the model that was best before the change
 the share of each label. The same numbers go per step to `results/world/` as a
 CSV, next to a plot of them.
 
+## Models
+
+`retrain/train.py` fits a multinomial logistic regression and saves it as
+bytes. The same data and config give the same bytes, in any process and with
+any number of threads, so a model can be known by the hash of those bytes.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
