@@ -9,7 +9,8 @@ CURVATURE = 0.3
 ROWS = 100
 CALIBRATION_ROWS = 50_000
 
-# don't renumber, every seed would give different data
+# don't renumber, every seed would give different data. a key used without a
+# step must never get one, numpy pads [seed, k] into the same stream as [seed, k, 0]
 GEOMETRY, CALIBRATION, X, Y, SCRIPT, CHANGE, NOISE = range(7)
 
 
@@ -45,24 +46,28 @@ class World:
         return softmax(v @ self.w + (v * v) @ self.q + self.b)
 
     def draws(self, step, n=ROWS):
-        """the random numbers behind one step: z of shape (n, FEATURES), u of shape (n,)."""
+        """z ~ N(0, 1) of shape (n, FEATURES) and u ~ U[0, 1) of shape (n,), for one step."""
         z = np.random.default_rng([self.seed, X, step]).standard_normal((n, FEATURES))
         u = np.random.default_rng([self.seed, Y, step]).random(n)
         return z, u
 
     def batch(self, step, n=ROWS):
-        """(x, y) for one step. only depends on the seed and the step."""
+        """(x, y) for one step, y ints in [0, CLASSES). only depends on the seed and the step."""
         x, u = self.draws(step, n)
         return x, label(self.proba(x), u)
 
 
 def label(p, u):
+    """class of each row, ints in [0, K).
+
+    p is (n, K) with rows summing to 1, u is uniform on [0, 1) with shape (n,).
+    """
     # inverse cdf instead of rng.choice, a row keeps its label when p moves a little
     return (u[:, None] >= p[:, :-1].cumsum(axis=1)).sum(axis=1)
 
 
 def _calibrate(r):
-    # (K, n) layout, reducing over a last axis of length 4 is about 2x slower
+    # (K, n) layout, the softmax over a last axis of length 4 is about 1.7x slower
     r = np.ascontiguousarray(r.T)
     b = np.log(PRIORS)[:, None]
 

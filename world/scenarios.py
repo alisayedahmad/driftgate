@@ -22,11 +22,11 @@ def world(seed):
 class Scenario:
     """a world with one abrupt change at step `at`.
 
-    size is how strong the change is: standard deviations for covariate,
-    accuracy lost by the old Bayes classifier for concept (0.1 is 10 points),
-    share of the source class relabeled for noise. what it applies to comes
-    from the seed, so two scenarios that differ only in size change the same
-    thing by a different amount.
+    size is in standard deviations for covariate, in accuracy lost by the old
+    Bayes classifier for concept (0.1 is 10 points), and is the share of the
+    source class relabeled for noise. what the change applies to comes from
+    the seed, so two scenarios that differ only in size change the same thing
+    by a different amount.
     """
 
     seed: int
@@ -44,7 +44,11 @@ class Scenario:
 
     @classmethod
     def draw(cls, seed, kind):
-        """step in AT and size in SIZES[kind], both drawn from the seed (inclusive)."""
+        """step in AT (both ends included) and size in SIZES[kind] (top excluded).
+
+        both come from the seed only, so a seed gives the same step for every
+        kind, and a size at the same point of each kind's range.
+        """
         if kind == "none":
             return cls(seed)
         if kind not in SIZES:
@@ -61,7 +65,7 @@ class Scenario:
 
     @cached_property
     def shift(self):
-        """added to x from step `at` on: one column, either direction."""
+        """added to x from step `at` on. one column, either sign."""
         g = np.random.default_rng([self.seed, CHANGE])
         d = np.zeros(FEATURES)
         d[g.integers(FEATURES)] = g.choice([-1.0, 1.0]) * self.size
@@ -93,7 +97,7 @@ class Scenario:
             # harm rose monotonically up to 0.25 on every plane tried, 1000 seeds
             harms = [0.0]
             for angle in ANGLES[1:]:
-                harms.append(harm(rotate(q, angle)))
+                harms.append(harm(_rotate(q, angle)))
                 if harms[-1] >= reach:
                     break
             else:
@@ -102,8 +106,8 @@ class Scenario:
             lo, hi = ANGLES[hit - 1], ANGLES[hit]
             for _ in range(11):
                 mid = (lo + hi) / 2
-                lo, hi = (mid, hi) if harm(rotate(q, mid)) < self.size else (lo, mid)
-            return rotate(q, hi)
+                lo, hi = (mid, hi) if harm(_rotate(q, mid)) < self.size else (lo, mid)
+            return _rotate(q, hi)
         raise ValueError(f"no plane out of {PLANES} costs {reach} accuracy in seed {self.seed}")
 
     @cached_property
@@ -136,8 +140,8 @@ class Scenario:
         return self.world.proba(x)
 
 
-def rotate(q, angle):
-    # rotation by `angle` in the plane of q's first two columns
+def _rotate(q, angle):
+    # by `angle` radians in the plane of the first two columns of q, which must be orthonormal
     a, b = q[:, 0], q[:, 1]
     return (np.eye(len(a)) + (np.cos(angle) - 1) * (np.outer(a, a) + np.outer(b, b))
             + np.sin(angle) * (np.outer(b, a) - np.outer(a, b)))
