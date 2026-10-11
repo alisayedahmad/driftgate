@@ -4,7 +4,7 @@ import pytest
 from world.scenarios import AT, SIZES, Scenario
 from world.stream import BAYES, CALIBRATION_ROWS, FEATURES, INFORMATIVE, PRIORS
 
-KINDS = ["covariate", "concept"]
+KINDS = ["covariate", "concept", "noise"]
 
 
 def covariate(seed):
@@ -79,6 +79,24 @@ def test_concept_break_leaves_priors_and_bayes_accuracy_alone(concept, fresh):
     k = np.sqrt(1 / CALIBRATION_ROWS + 1 / len(fresh))
     assert np.all(np.abs(p.mean(axis=0) - PRIORS) < 5 * k * p.std(axis=0))
     assert abs(best.mean() - BAYES) < 5 * k * best.std()
+
+
+def test_noise_only_relabels_part_of_the_source_class():
+    s = Scenario.draw(3, "noise")
+    source, target = s.flip
+    y, ty = [], []
+    for step in range(s.at, s.at + 300):
+        x, labels = s.batch(step)
+        tx, true = s.twin().batch(step)
+        assert np.array_equal(x, tx)
+        assert np.array_equal(s.proba(x, step), s.twin().proba(x, step))
+        y.append(labels)
+        ty.append(true)
+    y, ty = np.concatenate(y), np.concatenate(ty)
+    moved = y != ty
+    assert np.all(ty[moved] == source) and np.all(y[moved] == target)
+    n = (ty == source).sum()
+    assert abs(moved.sum() / n - s.size) < 5 * np.sqrt(s.size * (1 - s.size) / n)
 
 
 def test_bad_scripts_are_refused():

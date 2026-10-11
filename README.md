@@ -50,6 +50,11 @@ Kinds so far:
   frequencies or the best possible accuracy. Only a model trained before the
   change pays for it. The size of the change is the accuracy that the old best
   classifier loses.
+- `noise` relabels part of one class as another class from the change on. The
+  inputs and the true link between inputs and labels don't move, only the
+  labels the pipeline gets to see. Measured against them, a model that is
+  still right usually looks worse. Retraining on them makes a model worse on
+  the true labels, a little overall and mostly on the relabeled class.
 
 ## Setup
 

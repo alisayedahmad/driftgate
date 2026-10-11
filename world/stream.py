@@ -10,7 +10,7 @@ ROWS = 100
 CALIBRATION_ROWS = 50_000
 
 # don't renumber, every seed would give different data
-GEOMETRY, CALIBRATION, X, Y, SCRIPT, CHANGE = range(6)
+GEOMETRY, CALIBRATION, X, Y, SCRIPT, CHANGE, NOISE = range(7)
 
 
 def softmax(s, axis=1):

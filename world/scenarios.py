@@ -3,12 +3,12 @@ from functools import cache, cached_property
 
 import numpy as np
 
-from world.stream import (CALIBRATION_ROWS, CHANGE, FEATURES, INFORMATIVE, ROWS, SCRIPT,
-                          World, label)
+from world.stream import (CALIBRATION_ROWS, CHANGE, CLASSES, FEATURES, INFORMATIVE, NOISE,
+                          ROWS, SCRIPT, World, label)
 
-KINDS = ("none", "covariate", "concept")
+KINDS = ("none", "covariate", "concept", "noise")
 AT = (300, 700)
-SIZES = {"covariate": (0.25, 1.5), "concept": (0.03, 0.25)}
+SIZES = {"covariate": (0.25, 1.5), "concept": (0.03, 0.25), "noise": (0.1, 0.4)}
 ANGLES = np.linspace(0, np.pi, 33)
 PLANES = 10
 
@@ -23,9 +23,10 @@ class Scenario:
     """a world with one abrupt change at step `at`.
 
     size is how strong the change is: standard deviations for covariate,
-    accuracy lost by the old Bayes classifier for concept (0.1 is 10 points).
-    what it applies to comes from the seed, so two scenarios that differ only
-    in size change the same thing by a different amount.
+    accuracy lost by the old Bayes classifier for concept (0.1 is 10 points),
+    share of the source class relabeled for noise. what it applies to comes
+    from the seed, so two scenarios that differ only in size change the same
+    thing by a different amount.
     """
 
     seed: int
@@ -92,12 +93,28 @@ class Scenario:
             return rotate(q, hi)
         raise ValueError(f"no plane out of {PLANES} costs {self.size} accuracy in seed {self.seed}")
 
+    @cached_property
+    def flip(self):
+        """(source, target): noise relabels some of the source class as target."""
+        g = np.random.default_rng([self.seed, CHANGE])
+        source = int(g.integers(CLASSES))
+        return source, (source + 1 + int(g.integers(CLASSES - 1))) % CLASSES
+
     def batch(self, step, n=ROWS):
-        """(x, y) for one step, from the same random numbers as the twin."""
+        """(x, y) for one step, from the same random numbers as the twin.
+
+        y is what the pipeline gets to see. under noise it differs from the
+        true label, which is the twin's.
+        """
         x, u = self.world.draws(step, n)
         if self.kind == "covariate" and step >= self.at:
             x = x + self.shift
-        return x, label(self.proba(x, step), u)
+        y = label(self.proba(x, step), u)
+        if self.kind == "noise" and step >= self.at:
+            source, target = self.flip
+            hit = np.random.default_rng([self.seed, NOISE, step]).random(n) < self.size
+            y = np.where(hit & (y == source), target, y)
+        return x, y
 
     def proba(self, x, step):
         """true P(y|x) at `step`."""
