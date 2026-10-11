@@ -62,6 +62,11 @@ Kinds so far:
   all of those rows wrong, usually by picking one of the classes it knows with
   high confidence.
 
+The tests keep a fingerprint of what a few seeds draw for every kind, in
+`world/fingerprints.txt`. A change to the code that moves the data fails them
+even when every other test passes. `make fingerprints` rewrites the file when
+that change is meant.
+
 ## Looking at a scenario
 
 ```bash
