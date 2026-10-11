@@ -76,6 +76,8 @@ def _calibrate(r):
             # clipped newton step, unclipped it diverged on 10 seeds out of 200
             j = np.diagflat(m) - p @ p.T / p.shape[1]
             step = np.linalg.lstsq(j, PRIORS[:, None] - m, rcond=None)[0]
+            # j is singular along a constant shift of b, lstsq sometimes keeps a big one
+            step -= step.mean()
             b = b + np.clip(step, -3, 3)
         raise RuntimeError(f"priors did not converge at scale {scale}")
 
