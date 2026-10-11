@@ -92,6 +92,12 @@ SQLite file. Storing the same thing twice keeps one copy, and reading checks
 the bytes against their hash, so a damaged artifact is refused rather than
 loaded.
 
+`spine/provenance.py` names everything else a model depends on. A dataset is
+the sha256 of its rows plus the recipe that regenerates them, a scenario and a
+range of steps, so the rows never need to be kept and can be checked again at
+any time. The code is the commit, whether the working tree had changes, and a
+hash of those changes. Configs are hashed as canonical JSON.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
