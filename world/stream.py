@@ -11,7 +11,7 @@ CALIBRATION_ROWS = 50_000
 
 # don't renumber, every seed would give different data. a key used without a
 # step must never get one, numpy pads [seed, k] into the same stream as [seed, k, 0]
-GEOMETRY, CALIBRATION, X, Y, SCRIPT, CHANGE, NOISE = range(7)
+GEOMETRY, CALIBRATION, X, Y, SCRIPT, CHANGE, NOISE, MEMBER = range(8)
 
 
 def softmax(s, axis=1):

@@ -55,6 +55,11 @@ Kinds so far:
   labels the pipeline gets to see. Measured against them, a model that is
   still right usually looks worse. Retraining on them makes a model worse on
   the true labels, a little overall and mostly on the relabeled class.
+- `new` brings in a fifth class from the change on. Its rows sit in a part of
+  the informative features that was almost empty before, and the other rows
+  don't change. A model trained before can't predict that class, so it gets
+  all of those rows wrong, usually by picking one of the classes it knows with
+  high confidence.
 
 ## Setup
 

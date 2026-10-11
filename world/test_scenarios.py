@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
-from world.scenarios import AT, SIZES, Scenario
-from world.stream import BAYES, CALIBRATION_ROWS, CHANGE, FEATURES, INFORMATIVE, PRIORS, label
+from world.scenarios import AT, NEW_SPREAD, SIZES, Scenario
+from world.stream import (BAYES, CALIBRATION_ROWS, CHANGE, CLASSES, FEATURES, INFORMATIVE, PRIORS,
+                          ROWS, label)
 
-CHANGES = ["covariate", "concept", "noise"]
+CHANGES = ["covariate", "concept", "noise", "new"]
 
 
 def covariate(seed):
@@ -120,6 +121,38 @@ def test_noise_only_relabels_part_of_the_source_class():
     assert np.all(twin_y[moved] == source) and np.all(y[moved] == target)
     n = (twin_y == source).sum()
     assert abs(moved.sum() / n - s.size) < 5 * np.sqrt(s.size * (1 - s.size) / n)
+
+
+def test_new_class_only_replaces_some_rows():
+    s = Scenario.draw(3, "new")
+    steps = range(s.at, s.at + 200)
+    count = 0
+    for step in steps:
+        x, y = s.batch(step)
+        twin_x, twin_y = s.twin().batch(step)
+        new = y == CLASSES
+        assert np.array_equal(x[~new], twin_x[~new])
+        assert np.array_equal(y[~new], twin_y[~new])
+        moved = s.center + NEW_SPREAD * twin_x[new, :INFORMATIVE]
+        assert np.array_equal(x[new, :INFORMATIVE], moved)
+        assert np.array_equal(x[new, INFORMATIVE:], twin_x[new, INFORMATIVE:])
+        count += new.sum()
+    n = len(steps) * ROWS
+    assert abs(count / n - s.size) < 5 * np.sqrt(s.size * (1 - s.size) / n)
+
+
+def test_new_class_labels_follow_the_posterior():
+    s = Scenario.draw(3, "new")
+    x, y = (np.concatenate(a) for a in zip(*(s.batch(t) for t in range(s.at, s.at + 300))))
+    assert s.proba(x, s.at - 1).shape[1] == CLASSES
+    p = s.proba(x, s.at)
+    freq = np.bincount(y, minlength=CLASSES + 1) / len(y)
+    se = np.sqrt((p * (1 - p)).mean(axis=0) / len(y))
+    assert np.all(np.abs(freq - p.mean(axis=0)) < 5 * se)
+    hit = p[np.arange(len(y)), y]
+    square = (p * p).sum(axis=1)
+    se = np.sqrt(((p**3).sum(axis=1) - square**2).mean() / len(y))
+    assert abs(hit.mean() - square.mean()) < 5 * se
 
 
 def test_bad_scripts_are_refused():

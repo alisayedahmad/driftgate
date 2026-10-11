@@ -3,14 +3,17 @@ from functools import cache, cached_property
 
 import numpy as np
 
-from world.stream import (CALIBRATION_ROWS, CHANGE, CLASSES, FEATURES, INFORMATIVE, NOISE,
-                          ROWS, SCRIPT, World, label)
+from world.stream import (CALIBRATION_ROWS, CHANGE, CLASSES, FEATURES, INFORMATIVE, MEMBER,
+                          NOISE, ROWS, SCRIPT, World, label)
 
-KINDS = ("none", "covariate", "concept", "noise")
+KINDS = ("none", "covariate", "concept", "noise", "new")
 AT = (300, 700)
-SIZES = {"covariate": (0.25, 1.5), "concept": (0.03, 0.25), "noise": (0.1, 0.4)}
+SIZES = {"covariate": (0.25, 1.5), "concept": (0.03, 0.25), "noise": (0.1, 0.4),
+         "new": (0.02, 0.15)}
 ANGLES = np.linspace(0, np.pi, 17)
 PLANES = 10
+NEW_DISTANCE = 3.0
+NEW_SPREAD = 0.5
 
 
 @cache
@@ -24,9 +27,11 @@ class Scenario:
 
     size is in standard deviations for covariate, in accuracy lost by the old
     Bayes classifier for concept (0.1 is 10 points), and is the share of the
-    source class relabeled for noise. what the change applies to comes from
-    the seed, so two scenarios that differ only in size change the same thing
-    by a different amount.
+    source class relabeled for noise. for new it is the share of rows from the
+    new class, rows the old classifier always gets wrong since it can't predict
+    that class. what the change applies to comes from the seed, so two
+    scenarios that differ only in size change the same thing by a different
+    amount.
     """
 
     seed: int
@@ -117,15 +122,29 @@ class Scenario:
         source = int(g.integers(CLASSES))
         return source, (source + 1 + int(g.integers(CLASSES - 1))) % CLASSES
 
+    @cached_property
+    def center(self):
+        """where the new class sits in the informative features, NEW_DISTANCE from 0."""
+        d = np.random.default_rng([self.seed, CHANGE]).standard_normal(INFORMATIVE)
+        return NEW_DISTANCE * d / np.linalg.norm(d)
+
     def batch(self, step, n=ROWS):
         """(x, y) for one step, from the same random numbers as the twin.
 
         y is what the pipeline gets to see. under noise it differs from the
-        true label, which is the twin's.
+        true label, which is the twin's. under new, y can be CLASSES.
         """
         x, u = self.world.draws(step, n)
         if self.kind == "covariate" and step >= self.at:
             x = x + self.shift
+        if self.kind == "new" and step >= self.at:
+            new = np.random.default_rng([self.seed, MEMBER, step]).random(n) < self.size
+            x = x.copy()
+            x[new, :INFORMATIVE] = self.center + NEW_SPREAD * x[new, :INFORMATIVE]
+            # rows are labeled by the group they came from, proba is the posterior
+            y = label(self.world.proba(x), u)
+            y[new] = CLASSES
+            return x, y
         y = label(self.proba(x, step), u)
         if self.kind == "noise" and step >= self.at:
             source, target = self.flip
@@ -134,10 +153,23 @@ class Scenario:
         return x, y
 
     def proba(self, x, step):
-        """true P(y|x) at `step`."""
+        """true P(y|x) at `step`.
+
+        under new, from step `at` on, the new class is column CLASSES and rows
+        have CLASSES + 1 columns.
+        """
         if self.kind == "concept" and step >= self.at:
             x = x[:, :INFORMATIVE] @ self.rotation.T
-        return self.world.proba(x)
+        p = self.world.proba(x)
+        if self.kind == "new" and step >= self.at:
+            v = x[:, :INFORMATIVE]
+            # log odds of the new group against the old one, the other columns cancel
+            odds = (np.log(self.size / (1 - self.size)) - INFORMATIVE * np.log(NEW_SPREAD)
+                    - ((v - self.center) ** 2).sum(axis=1) / (2 * NEW_SPREAD**2)
+                    + (v * v).sum(axis=1) / 2)
+            novel = np.exp(-np.logaddexp(0, -odds))
+            p = np.hstack([p * (1 - novel)[:, None], novel[:, None]])
+        return p
 
 
 def _rotate(q, angle):
