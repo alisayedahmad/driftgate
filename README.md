@@ -10,7 +10,8 @@ To answer that, the data is simulated. A scenario changes the data at a known
 step and in a known way, so every decision the pipeline takes can be compared
 with what really happened.
 
-Early stage: the scenario generator comes first.
+Early stage: the scenario generator is there, the pipeline it's meant to test
+comes next.
 
 ## The simulated world
 
@@ -60,6 +61,18 @@ Kinds so far:
   don't change. A model trained before can't predict that class, so it gets
   all of those rows wrong, usually by picking one of the classes it knows with
   high confidence.
+
+## Looking at a scenario
+
+```bash
+make world SEED=7 KIND=noise
+```
+
+prints what the scenario changes and, before and after the change, the best
+possible accuracy, the accuracy of the model that was best before the change
+(its real accuracy and the one measured on the labels the pipeline sees), and
+the share of each label. The same numbers go per step to `results/world/` as a
+CSV, next to a plot of them.
 
 ## Setup
 

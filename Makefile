@@ -2,7 +2,7 @@
 VENV ?= $(HOME)/.venvs/driftgate
 PY := $(VENV)/bin/python
 
-.PHONY: help env test
+.PHONY: help env test world
 
 help:  ## every target, one line each
 	@grep -E '^[a-z][a-z-]*:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-8s %s\n", $$1, $$2}'
@@ -18,3 +18,9 @@ $(VENV)/.synced: .python-version requirements.txt
 
 test: env  ## run the tests
 	$(PY) -m pytest -q
+
+SEED ?= 0
+KIND ?= concept
+
+world: env  ## draw a scenario and look at it, pick it with SEED= and KIND=
+	$(PY) -m world.summary --seed $(SEED) --kind $(KIND)
