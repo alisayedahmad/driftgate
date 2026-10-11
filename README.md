@@ -2,9 +2,9 @@
 
 A model in production slowly goes out of date as the data changes. The usual
 answer is a pipeline that watches for drift, retrains, and swaps in the new
-model when it looks better. This project is about checking whether that
-pipeline makes the right calls: does it raise the alarm when it should, does it
-retrain for good reasons, does it ever promote a model that is actually worse?
+model when it looks better. This project checks the calls such a pipeline
+makes: when it raises an alarm, when it retrains, and whether the model it
+promotes is really better.
 
 To answer that, the data is simulated. A scenario changes the data at a known
 step and in a known way, so every decision the pipeline takes can be compared
@@ -14,15 +14,16 @@ Early stage: the scenario generator comes first.
 
 ## The simulated world
 
-`world/stream.py` generates the data. A seed fixes everything: which features
-matter, the shape of the true decision boundary, and the rows drawn at each
-step. There are six features, two of which carry no signal, and four classes,
-one of them rare. The boundary has a small quadratic term, so a linear model
-can get close to it but cannot fit it exactly.
+`world/stream.py` generates the data. A seed fixes how much each feature
+matters, the shape of the true decision boundary, and the rows drawn at each
+step. There are six features, the last two carry no signal, and four classes,
+one of them rare. The boundary has a quadratic term, so a linear model can't
+fit it exactly.
 
-Each world is then calibrated so that the best possible classifier reaches the
-same accuracy and the classes keep the same frequencies, whatever the seed.
-Two seeds give two differently shaped worlds that are equally hard.
+Each world is then calibrated so that, whatever the seed, the best possible
+classifier has the same accuracy and the classes have the same frequencies.
+The shape still varies from seed to seed, and so does how well a given model
+does on it.
 
 The rows of a step depend only on the seed and the step number. Any step can be
 regenerated on its own, and adding a new source of randomness later will not
@@ -45,11 +46,10 @@ Kinds so far:
   stays the same. If the feature is one of the two without signal, the inputs
   drift and every label stays what it would have been.
 - `concept` changes how labels depend on the inputs: the informative features
-  are rotated before the labels are drawn. The inputs themselves don't move,
-  and since they are spread evenly in every direction, neither do the class
-  frequencies or the best possible accuracy. Only a model trained before the
-  change pays for it. The size of the change is the accuracy that the old best
-  classifier loses.
+  are rotated before the labels are drawn. The inputs don't move, and since
+  they are spread evenly in every direction, the class frequencies and the best
+  possible accuracy don't either. The size of the change is the accuracy the
+  old best classifier loses.
 - `noise` relabels part of one class as another class from the change on. The
   inputs and the true link between inputs and labels don't move, only the
   labels the pipeline gets to see. Measured against them, a model that is
@@ -58,8 +58,8 @@ Kinds so far:
 
 ## Setup
 
-You need [uv](https://docs.astral.sh/uv/). It installs the Python version
-pinned in `.python-version` and exactly the packages listed in
+You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
+version pinned in `.python-version` and exactly the packages listed in
 `requirements.txt`.
 
 ```bash
@@ -69,9 +69,8 @@ make help    # list the targets
 ```
 
 The environment is created in `~/.venvs/driftgate`, outside the repository. On
-WSL2 the repository can live on a Windows drive, but a virtualenv there is very
-slow because it is made of thousands of small files. Set `VENV=...` to put it
-somewhere else.
+WSL2 the repository can live on a Windows drive, but a virtualenv there is
+slow, it's lots of small files. Set `VENV=...` to put it somewhere else.
 
 ## License
 
