@@ -1,4 +1,4 @@
-# not next to the repo: under WSL2 a windows drive is slow on small files
+# kept out of the repo, a windows drive under WSL2 is slow on small files
 VENV ?= $(HOME)/.venvs/driftgate
 PY := $(VENV)/bin/python
 
@@ -9,10 +9,10 @@ help:  ## every target, one line each
 
 env: $(VENV)/.synced  ## the pinned interpreter and requirements, via uv
 
-$(VENV)/pyvenv.cfg: .python-version
-	uv venv --quiet --clear $(VENV)
-
-$(VENV)/.synced: $(VENV)/pyvenv.cfg requirements.txt
+# shared by every checkout, rebuilt only if its python isn't the pinned one
+$(VENV)/.synced: .python-version requirements.txt
+	@[ "$$($(PY) -c 'import platform; print(platform.python_version())' 2>/dev/null)" = "$$(cat .python-version)" ] \
+		|| uv venv --quiet --clear $(VENV)
 	uv pip sync --quiet --python $(PY) requirements.txt
 	touch $@
 
