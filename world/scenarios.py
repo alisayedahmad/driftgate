@@ -9,7 +9,7 @@ from world.stream import (CALIBRATION_ROWS, CHANGE, CLASSES, FEATURES, INFORMATI
 KINDS = ("none", "covariate", "concept", "noise")
 AT = (300, 700)
 SIZES = {"covariate": (0.25, 1.5), "concept": (0.03, 0.25), "noise": (0.1, 0.4)}
-ANGLES = np.linspace(0, np.pi, 33)
+ANGLES = np.linspace(0, np.pi, 17)
 PLANES = 10
 
 
@@ -67,31 +67,40 @@ class Scenario:
     def rotation(self):
         """applied to the informative columns before scoring, from step `at` on.
 
-        the plane comes from the seed, the angle is the smallest that costs the
-        old Bayes classifier `size` accuracy. if the plane can't get there the
-        next one is tried, ValueError after PLANES.
+        the plane is the first drawn from the seed that can cost the old Bayes
+        classifier the largest concept size in SIZES, so every size in that
+        range uses the same plane. the angle is the smallest that costs `size`.
+        ValueError if no plane out of PLANES gets there.
         """
         g = np.random.default_rng([self.seed, CHANGE])
         v = g.standard_normal((CALIBRATION_ROWS, INFORMATIVE))
         p = self.world.proba(v)
         best, old, rows = p.max(axis=1), p.argmax(axis=1), np.arange(len(v))
+        reach = max(self.size, SIZES["concept"][1])
+        if reach >= best.mean():
+            raise ValueError(f"a concept break can't cost {reach}, seed {self.seed} "
+                             f"is only {best.mean():.3f} accurate")
 
         def harm(r):
             return (best - self.world.proba(v @ r.T)[rows, old]).mean()
 
         for _ in range(PLANES):
             q = np.linalg.qr(g.standard_normal((INFORMATIVE, INFORMATIVE)))[0]
-            # harm rises monotonically up to its peak on all of 1000 seeds tried
-            hit = next((i for i in range(1, len(ANGLES))
-                        if harm(rotate(q, ANGLES[i])) >= self.size), None)
-            if hit is None:
+            # harm rose monotonically up to 0.25 on every plane tried, 1000 seeds
+            harms = [0.0]
+            for angle in ANGLES[1:]:
+                harms.append(harm(rotate(q, angle)))
+                if harms[-1] >= reach:
+                    break
+            else:
                 continue
+            hit = next(i for i in range(1, len(harms)) if harms[i] >= self.size)
             lo, hi = ANGLES[hit - 1], ANGLES[hit]
-            for _ in range(10):
+            for _ in range(11):
                 mid = (lo + hi) / 2
                 lo, hi = (mid, hi) if harm(rotate(q, mid)) < self.size else (lo, mid)
             return rotate(q, hi)
-        raise ValueError(f"no plane out of {PLANES} costs {self.size} accuracy in seed {self.seed}")
+        raise ValueError(f"no plane out of {PLANES} costs {reach} accuracy in seed {self.seed}")
 
     @cached_property
     def flip(self):

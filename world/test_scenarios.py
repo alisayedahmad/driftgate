@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from world.scenarios import AT, SIZES, Scenario
-from world.stream import BAYES, CALIBRATION_ROWS, FEATURES, INFORMATIVE, PRIORS
+from world.stream import BAYES, CALIBRATION_ROWS, CHANGE, FEATURES, INFORMATIVE, PRIORS
 
 KINDS = ["covariate", "concept", "noise"]
 
@@ -73,6 +73,22 @@ def test_concept_break_costs_the_old_classifier_its_size(concept, fresh):
     assert abs(loss.mean() - concept.size) < 5 * k * loss.std()
 
 
+def test_concept_angle_hits_its_size_on_its_own_sample(concept):
+    g = np.random.default_rng([concept.seed, CHANGE])
+    v = g.standard_normal((CALIBRATION_ROWS, INFORMATIVE))
+    before = concept.proba(v, concept.at - 1)
+    after = concept.proba(v, concept.at)
+    harm = (before.max(axis=1) - after[np.arange(len(v)), before.argmax(axis=1)]).mean()
+    assert concept.size <= harm < concept.size + 1e-3
+
+
+def test_concept_sizes_share_one_plane():
+    small = Scenario(3, "concept", at=300, size=0.05).rotation
+    large = Scenario(3, "concept", at=300, size=0.25).rotation
+    eye = np.eye(INFORMATIVE)
+    assert np.linalg.matrix_rank(np.hstack([small - eye, large - eye]), tol=1e-9) == 2
+
+
 def test_concept_break_leaves_priors_and_bayes_accuracy_alone(concept, fresh):
     p = concept.proba(fresh, concept.at)
     best = p.max(axis=1)
@@ -106,3 +122,5 @@ def test_bad_scripts_are_refused():
         Scenario(0, "covariate")
     with pytest.raises(ValueError):
         Scenario(0, "none", at=10)
+    with pytest.raises(ValueError):
+        Scenario(3, "concept", at=10, size=0.9).rotation
