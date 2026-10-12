@@ -5,7 +5,7 @@ PY := $(VENV)/bin/python
 .PHONY: help env test world fingerprints train
 
 help:  ## every target, one line each
-	@grep -E '^[a-z][a-z-]*:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-8s %s\n", $$1, $$2}'
+	@grep -E '^[a-z][a-z-]*:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-13s %s\n", $$1, $$2}'
 
 env: $(VENV)/.synced  ## the pinned interpreter and requirements, via uv
 
