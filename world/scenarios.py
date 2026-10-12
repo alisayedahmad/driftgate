@@ -76,44 +76,17 @@ class Scenario:
         d[g.integers(FEATURES)] = g.choice([-1.0, 1.0]) * self.size
         return d
 
-    @cached_property
+    @property
     def rotation(self):
         """applied to the informative columns before scoring, from step `at` on.
 
         the plane is the first drawn from the seed that can cost the old Bayes
         classifier the largest concept size in SIZES, so every size in that
         range uses the same plane. the angle is the smallest that costs `size`.
-        ValueError if no plane out of PLANES gets there.
+        ValueError if no plane out of PLANES gets there. read-only, it's shared
+        by every scenario with the same seed and size.
         """
-        g = np.random.default_rng([self.seed, CHANGE])
-        v = g.standard_normal((CALIBRATION_ROWS, INFORMATIVE))
-        p = self.world.proba(v)
-        best, old, rows = p.max(axis=1), p.argmax(axis=1), np.arange(len(v))
-        reach = max(self.size, SIZES["concept"][1])
-        if reach >= best.mean():
-            raise ValueError(f"a concept break can't cost {reach}, seed {self.seed} "
-                             f"is only {best.mean():.3f} accurate")
-
-        def harm(r):
-            return (best - self.world.proba(v @ r.T)[rows, old]).mean()
-
-        for _ in range(PLANES):
-            q = np.linalg.qr(g.standard_normal((INFORMATIVE, INFORMATIVE)))[0]
-            # harm rose monotonically up to 0.25 on every plane tried, 1000 seeds
-            harms = [0.0]
-            for angle in ANGLES[1:]:
-                harms.append(harm(_rotate(q, angle)))
-                if harms[-1] >= reach:
-                    break
-            else:
-                continue
-            hit = next(i for i in range(1, len(harms)) if harms[i] >= self.size)
-            lo, hi = ANGLES[hit - 1], ANGLES[hit]
-            for _ in range(11):
-                mid = (lo + hi) / 2
-                lo, hi = (mid, hi) if harm(_rotate(q, mid)) < self.size else (lo, mid)
-            return _rotate(q, hi)
-        raise ValueError(f"no plane out of {PLANES} costs {reach} accuracy in seed {self.seed}")
+        return _rotation(self.seed, self.size)
 
     @cached_property
     def flip(self):
@@ -170,6 +143,43 @@ class Scenario:
             novel = np.exp(-np.logaddexp(0, -odds))
             p = np.hstack([p * (1 - novel)[:, None], novel[:, None]])
         return p
+
+
+@cache
+def _rotation(seed, size):
+    # cached by value, rebuilding a scenario from a recipe shouldn't redo the search
+    world = _world(seed)
+    g = np.random.default_rng([seed, CHANGE])
+    v = g.standard_normal((CALIBRATION_ROWS, INFORMATIVE))
+    p = world.proba(v)
+    best, old, rows = p.max(axis=1), p.argmax(axis=1), np.arange(len(v))
+    reach = max(size, SIZES["concept"][1])
+    if reach >= best.mean():
+        raise ValueError(f"a concept break can't cost {reach}, seed {seed} "
+                         f"is only {best.mean():.3f} accurate")
+
+    def harm(r):
+        return (best - world.proba(v @ r.T)[rows, old]).mean()
+
+    for _ in range(PLANES):
+        q = np.linalg.qr(g.standard_normal((INFORMATIVE, INFORMATIVE)))[0]
+        # harm rose monotonically up to 0.25 on every plane tried, 1000 seeds
+        harms = [0.0]
+        for angle in ANGLES[1:]:
+            harms.append(harm(_rotate(q, angle)))
+            if harms[-1] >= reach:
+                break
+        else:
+            continue
+        hit = next(i for i in range(1, len(harms)) if harms[i] >= size)
+        lo, hi = ANGLES[hit - 1], ANGLES[hit]
+        for _ in range(11):
+            mid = (lo + hi) / 2
+            lo, hi = (mid, hi) if harm(_rotate(q, mid)) < size else (lo, mid)
+        r = _rotate(q, hi)
+        r.flags.writeable = False
+        return r
+    raise ValueError(f"no plane out of {PLANES} costs {reach} accuracy in seed {seed}")
 
 
 def _rotate(q, angle):
