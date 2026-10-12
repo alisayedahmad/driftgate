@@ -2,7 +2,7 @@
 VENV ?= $(HOME)/.venvs/driftgate
 PY := $(VENV)/bin/python
 
-.PHONY: help env test world fingerprints
+.PHONY: help env test world fingerprints train
 
 help:  ## every target, one line each
 	@grep -E '^[a-z][a-z-]*:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-8s %s\n", $$1, $$2}'
@@ -27,3 +27,6 @@ world: env  ## draw a scenario and look at it, pick it with SEED= and KIND=
 
 fingerprints: env  ## rewrite world/fingerprints.txt, only when the data is meant to change
 	$(PY) -m world.fingerprint
+
+train: env  ## train two models on a scenario, register them, rebuild them from their records
+	$(PY) -m retrain.train --seed $(SEED) --kind $(KIND)

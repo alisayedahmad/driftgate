@@ -105,6 +105,18 @@ can only point at things the store holds, and following the serving models
 back gives a model's lineage. There is no clock time in a record, so two
 identical runs give identical registries.
 
+```bash
+make train SEED=7 KIND=concept
+```
+
+fits a model on the first steps of a scenario and another one after its
+change, registers both with the first as the second's parent, and prints the
+lineage. Then it rebuilds each model from its record alone: the datasets are
+regenerated from their recipes and checked against their hashes, the model is
+refit with the stored config and has to come out with the same bytes, and the
+metrics have to come out the same. Each run starts a fresh registry in
+`~/.local/share/driftgate/`.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
