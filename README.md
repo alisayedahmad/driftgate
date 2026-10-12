@@ -98,6 +98,13 @@ range of steps, so the rows never need to be kept and can be checked again at
 any time. The code is the commit, whether the working tree had changes, and a
 hash of those changes. Configs are hashed as canonical JSON.
 
+`spine/registry.py` keeps one record per model: the datasets it was trained
+and evaluated on, its config, the code and library versions, its metrics, the
+model that was serving when it was trained, and the simulation step. A record
+can only point at things the store holds, and following the serving models
+back gives a model's lineage. There is no clock time in a record, so two
+identical runs give identical registries.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python

@@ -1,0 +1,69 @@
+import json
+
+from spine.provenance import canonical
+
+FIELDS = ("model", "trained_on", "evaluated_on", "config", "code", "versions", "metrics",
+          "parent", "step")
+BLOBS = ("model", "trained_on", "evaluated_on", "config")
+
+
+class Registry:
+    """what made each model, kept next to the artifacts in a Store.
+
+    a record is a dict with exactly FIELDS. model, trained_on, evaluated_on and
+    config are hashes of blobs in the store (the model bytes, two dataset
+    documents, the config as canonical JSON). code and versions come from
+    spine.provenance, metrics were measured on evaluated_on. parent is the
+    model that was serving when this one was trained, or None for the first,
+    and step is the simulation step it was trained at. no wall clock anywhere,
+    so two identical runs give identical registries.
+    """
+
+    def __init__(self, store):
+        self.store = store
+        self.store.db.execute("create table if not exists models "
+                              "(model text primary key, record text not null)")
+
+    def register(self, record):
+        """add a record and return its model hash.
+
+        ValueError if the fields aren't FIELDS, if a blob is missing from the
+        store, if the parent isn't registered, or if the model already has a
+        different record. registering the same record again does nothing.
+        """
+        if set(record) != set(FIELDS):
+            raise ValueError(f"a record has exactly {FIELDS}, got {sorted(record)}")
+        missing = [field for field in BLOBS if record[field] not in self.store]
+        if missing:
+            raise ValueError(f"not in the store: {missing}")
+        if record["parent"] is not None and self.get(record["parent"]) is None:
+            raise ValueError(f"parent {record['parent']} isn't registered")
+        known = self.get(record["model"])
+        if known is not None and known != json.loads(canonical(record)):
+            raise ValueError(f"model {record['model']} is already registered with another record")
+        with self.store.db:
+            self.store.db.execute("insert or ignore into models values (?, ?)",
+                                  (record["model"], canonical(record).decode()))
+        return record["model"]
+
+    def get(self, model):
+        """the record of a model, or None if it isn't registered."""
+        row = self.store.db.execute("select record from models where model = ?",
+                                    (model,)).fetchone()
+        return None if row is None else json.loads(row[0])
+
+    def lineage(self, model):
+        """records from model back to the first one, following parents. KeyError if unknown."""
+        chain = []
+        while model is not None:
+            record = self.get(model)
+            if record is None:
+                raise KeyError(model)
+            chain.append(record)
+            model = record["parent"]
+        return chain
+
+    def dump(self):
+        """every record as canonical JSON, one per line, sorted by model."""
+        rows = self.store.db.execute("select record from models order by model").fetchall()
+        return "".join(row[0] + "\n" for row in rows)

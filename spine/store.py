@@ -24,6 +24,9 @@ class Store:
             self.db.execute("insert or ignore into blobs values (?, ?)", (h, data))
         return h
 
+    def __contains__(self, h):
+        return self.db.execute("select 1 from blobs where hash = ?", (h,)).fetchone() is not None
+
     def get(self, h):
         """the bytes stored under h. KeyError if there are none, ValueError if they don't hash to h."""
         row = self.db.execute("select data from blobs where hash = ?", (h,)).fetchone()
