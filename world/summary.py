@@ -19,8 +19,8 @@ def trace(s, steps=STEPS):
     best is the mean of max P(y|x) over the step's rows, the accuracy of the
     best possible classifier. true and measured are for the old classifier,
     the argmax of the world before any change: its expected accuracy, and its
-    hit rate on the labels the pipeline sees. freq is (steps, CLASSES + 1),
-    the share of each label in the step.
+    hit rate on the observed labels of every row, as if all came back at once.
+    freq is (steps, CLASSES + 1), the share of each label in the step.
     """
     best, true, measured = np.empty(steps), np.empty(steps), np.empty(steps)
     freq = np.empty((steps, CLASSES + 1))

@@ -104,8 +104,9 @@ class Scenario:
     def batch(self, step, n=ROWS):
         """(x, y) for one step, from the same random numbers as the twin.
 
-        y is what the pipeline gets to see. under noise it differs from the
-        true label, which is the twin's. under new, y can be CLASSES.
+        y is the label the pipeline sees if it comes back. under noise it
+        differs from the true label, which is the twin's. under new, y can be
+        CLASSES.
         """
         x, u = self.world.draws(step, n)
         if self.kind == "covariate" and step >= self.at:

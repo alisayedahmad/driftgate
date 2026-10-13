@@ -83,8 +83,10 @@ make world SEED=7 KIND=noise
 
 prints what the scenario changes and, before and after the change, the best
 possible accuracy, the accuracy of the model that was best before the change
-(its real accuracy and the one measured on the labels the pipeline sees), and
-the share of each label. The same numbers go per step to `results/world/` as a
+(its real accuracy, and the one measured on the observed labels of every row as
+if they all came back at once), and the share of each label. It shows the
+world, not what the pipeline can know: there, only some labels come back, and
+late. The same numbers go per step to `results/world/` as a
 CSV, next to a plot of them.
 
 ## Models
