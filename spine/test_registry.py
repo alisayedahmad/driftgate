@@ -1,7 +1,7 @@
 import pytest
 
 from spine.provenance import canonical
-from spine.registry import Registry
+from spine.registry import Registry, fresh
 from spine.store import Store
 
 CODE = {"commit": "0" * 40, "dirty": False, "changes": None}
@@ -63,3 +63,11 @@ def test_identical_runs_give_identical_registries(tmp_path):
         r.register(record(r.store, "b", parent=a, step=400))
         dumps.append(r.dump())
     assert dumps[0] == dumps[1] != ""
+
+
+def test_fresh_starts_each_run_empty(tmp_path, monkeypatch):
+    monkeypatch.setattr("spine.registry.RUNS", tmp_path)
+    r = fresh("run")
+    r.register(record(r.store, "a"))
+    assert r.dump() != ""
+    assert fresh("run").dump() == ""

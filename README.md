@@ -142,6 +142,17 @@ model that isn't registered. Replaying a scenario through it serves each step
 in turn while the labels travel back as `world/labels.py` decided, entering
 the log only when they arrive.
 
+```bash
+make serve SEED=7 KIND=concept
+```
+
+trains a model on what was known at an early step of the scenario, registers
+it, and serves it at `http://127.0.0.1:8000`. `POST /predict` with
+`{"step": 0, "rows": [[six numbers], ...]}` answers the probabilities over the
+five classes, and every request lands in the log, so steps have to go forward.
+HTTP is only a thin layer around the service; the rest of the pipeline uses the
+service directly.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python

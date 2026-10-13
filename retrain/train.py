@@ -2,13 +2,11 @@ import argparse
 import hashlib
 import json
 import pickle
-from pathlib import Path
 
 from sklearn.linear_model import LogisticRegression
 
 from spine.provenance import canonical, code, dataset, rows, verify, versions
-from spine.registry import Registry
-from spine.store import Store
+from spine.registry import fresh
 from world.labels import LABELING
 from world.scenarios import KINDS, Scenario
 
@@ -101,18 +99,14 @@ def main():
     parser.add_argument("--kind", choices=KINDS, default="concept")
     args = parser.parse_args()
 
-    # one registry per run, a rerun after an edit would clash with the old records
-    path = Path.home() / ".local/share/driftgate" / f"train-{args.kind}-{args.seed}.db"
-    for suffix in ("", "-wal", "-shm"):
-        Path(f"{path}{suffix}").unlink(missing_ok=True)
-    registry = Registry(Store(path))
+    registry = fresh(f"train-{args.kind}-{args.seed}")
     about = {"code": code(), "versions": versions()}
 
     s = Scenario.draw(args.seed, args.kind)
     first = train(registry, s, WINDOW, None, about, LABELING)
     after = s.at if s.at is not None else 500
     second = train(registry, s, after + WINDOW, first, about, LABELING)
-    print(f"registry {path}")
+    print(f"registry {registry.store.path}")
     for model in (first, second):
         print(describe(registry, model))
     print("lineage " + " <- ".join(r["model"][:12] for r in registry.lineage(second)))

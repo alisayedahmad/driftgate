@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
+from fastapi.testclient import TestClient
 
 from retrain.test_train import ABOUT
 from retrain.train import TEST, WINDOW, train
-from serving.app import Service, replay
+from serving.app import Service, http, replay
 from serving.log import UNKNOWN
 from spine.provenance import dataset
 from spine.registry import Registry
@@ -76,3 +77,27 @@ def test_a_training_set_is_what_the_log_knew_at_that_step(served):
     x, y, _ = dataset(s, 0, WINDOW - TEST, LABELING, WINDOW)
     assert np.array_equal(known["x"][keep], x)
     assert np.array_equal(known["label"][keep], y)
+
+
+def test_http_answers_what_the_service_would(served):
+    registry, s, model = served
+    service = Service(registry, model)
+    client = TestClient(http(service))
+    x, _ = s.batch(0)
+    answer = client.post("/predict", json={"step": 0, "rows": x.tolist()})
+    assert answer.status_code == 200
+    assert answer.json()["model"] == model
+    assert np.array_equal(answer.json()["proba"], Service(registry, model).predict(0, x))
+    assert np.array_equal(service.log.as_of(0)["x"], x)
+    assert client.get("/model").json() == {"model": model}
+
+
+def test_http_refuses_what_it_cant_serve(served):
+    registry, s, model = served
+    client = TestClient(http(Service(registry, model)))
+    x, _ = s.batch(0)
+    assert client.post("/predict", json={"step": 0, "rows": x[:, :3].tolist()}).status_code == 422
+    assert client.post("/predict", json={"step": 0, "rows": []}).status_code == 422
+    assert client.post("/predict", json={"step": "soon", "rows": x.tolist()}).status_code == 422
+    assert client.post("/predict", json={"step": 0, "rows": x.tolist()}).status_code == 200
+    assert client.post("/predict", json={"step": 0, "rows": x.tolist()}).status_code == 409

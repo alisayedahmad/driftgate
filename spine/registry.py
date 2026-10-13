@@ -1,10 +1,25 @@
 import json
+from pathlib import Path
 
 from spine.provenance import canonical
+from spine.store import Store
 
 FIELDS = ("model", "trained_on", "evaluated_on", "config", "code", "versions", "metrics",
           "parent", "step")
 BLOBS = ("model", "trained_on", "evaluated_on", "config")
+RUNS = Path.home() / ".local/share/driftgate"
+
+
+def fresh(name):
+    """an empty registry for one run, in RUNS/name.db, wiping what a previous run left.
+
+    one registry per run: a rerun after an edit gives the same model with another
+    code record, which a registry refuses.
+    """
+    path = RUNS / f"{name}.db"
+    for suffix in ("", "-wal", "-shm"):
+        Path(f"{path}{suffix}").unlink(missing_ok=True)
+    return Registry(Store(path))
 
 
 class Registry:

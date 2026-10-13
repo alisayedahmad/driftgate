@@ -13,6 +13,7 @@ class Store:
     def __init__(self, path):
         if path != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
+        self.path = path
         self.db = sqlite3.connect(path)
         self.db.execute("pragma journal_mode=wal")
         self.db.execute("create table if not exists blobs (hash text primary key, data blob not null)")
