@@ -1,3 +1,5 @@
+import sqlite3
+
 import numpy as np
 import pytest
 
@@ -58,3 +60,15 @@ def test_impossible_entries_are_refused():
     log.arrived(3, 1, [0], [0])
     with pytest.raises(ValueError):
         log.arrived(4, 1, [0], [2])
+
+
+def test_save_writes_every_row():
+    log = filled(3)
+    log.arrived(2, 0, [5], [1])
+    db = sqlite3.connect(":memory:")
+    log.save(db)
+    assert db.execute("select count(*) from predictions").fetchone()[0] == 300
+    row = db.execute("select * from predictions limit 1 offset 5").fetchone()
+    assert row[0] == 0 and row[-2:] == (1, 2)
+    assert np.array_equal(row[1:1 + FEATURES], rows(0)[0][5])
+    assert db.execute("select * from served_by").fetchall() == [(0, "a" * 64)]

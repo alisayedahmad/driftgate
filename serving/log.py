@@ -68,6 +68,24 @@ class Log:
         out["arrived"][late] = UNKNOWN
         return out
 
+    def save(self, db):
+        """write the log into an open SQLite connection, as tables predictions and served_by.
+
+        predictions has one row per row served: step, x0.., p0.., model (the
+        served_by index of its hash), label and arrived, UNKNOWN where it never
+        came back.
+        """
+        c = {name: column[:self.n] for name, column in self.columns.items()}
+        names = (["step"] + [f"x{i}" for i in range(FEATURES)]
+                 + [f"p{k}" for k in range(CLASSES + 1)] + ["model", "label", "arrived"])
+        rows = zip(c["step"].tolist(), *c["x"].T.tolist(), *c["proba"].T.tolist(),
+                   c["model"].tolist(), c["label"].tolist(), c["arrived"].tolist())
+        with db:
+            db.execute(f"create table predictions ({', '.join(names)})")
+            db.executemany(f"insert into predictions values ({', '.join('?' * len(names))})", rows)
+            db.execute("create table served_by (model integer primary key, hash text)")
+            db.executemany("insert into served_by values (?, ?)", enumerate(self.models))
+
     def _grow(self, k):
         size = len(self.columns["step"])
         if self.n + k <= size:

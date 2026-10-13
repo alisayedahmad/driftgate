@@ -2,7 +2,7 @@
 VENV ?= $(HOME)/.venvs/driftgate
 PY := $(VENV)/bin/python
 
-.PHONY: help env test world fingerprints train serve
+.PHONY: help env test world fingerprints train serve replay
 
 help:  ## every target, one line each
 	@grep -E '^[a-z][a-z-]*:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-13s %s\n", $$1, $$2}'
@@ -33,3 +33,6 @@ train: env  ## train two models on a scenario, register them, rebuild them from 
 
 serve: env  ## serve a model trained on a scenario at http://127.0.0.1:8000, SEED= and KIND=
 	$(PY) -m serving.app --seed $(SEED) --kind $(KIND)
+
+replay: env  ## replay a scenario through the service, true accuracy against what was known
+	$(PY) -m serving.replay --seed $(SEED) --kind $(KIND)

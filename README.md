@@ -153,6 +153,17 @@ five classes, and every request lands in the log, so steps have to go forward.
 HTTP is only a thin layer around the service; the rest of the pipeline uses the
 service directly.
 
+```bash
+make replay SEED=7 KIND=concept
+```
+
+trains a model at an early step and replays the rest of the scenario through
+the service. For each step it puts the true accuracy of what was served next
+to the accuracy the pipeline could know at that step, from the labels that had
+come back by then, and says how long after the change the known accuracy got
+halfway down. It writes a CSV and a plot to `results/replay/`, and keeps the
+log next to the run's registry.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
