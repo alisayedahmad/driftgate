@@ -132,6 +132,11 @@ the model that answered and its probabilities. A label only enters the log at
 the step it comes back, and asking what was known at an earlier step hides the
 labels that came later, so nothing can read a label before it existed.
 
+`serving/app.py` answers with one model from the registry and refuses any
+model that isn't registered. Replaying a scenario through it serves each step
+in turn while the labels travel back as `world/labels.py` decided, entering
+the log only when they arrive.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
