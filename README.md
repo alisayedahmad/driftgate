@@ -164,6 +164,14 @@ come back by then, and says how long after the change the known accuracy got
 halfway down. It writes a CSV and a plot to `results/replay/`, and keeps the
 log next to the run's registry.
 
+## Monitoring
+
+`monitor/cusum.py` is the detector every signal will use: a two-sided CUSUM
+over standardized values, one stream per feature or class, updated once a
+step. Its threshold trades how soon a real shift is caught against how often
+it fires for nothing, and the tests check both against Siegmund's
+approximation.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
