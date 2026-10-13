@@ -1,4 +1,5 @@
 import hashlib
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -7,10 +8,12 @@ import numpy as np
 import pytest
 from threadpoolctl import threadpool_limits
 
-from retrain.train import CONFIG, TEST, WINDOW, check, fit, from_bytes, to_bytes, train
+from retrain.train import (CONFIG, TEST, WINDOW, check, fit, from_bytes, score, to_bytes,
+                           train)
 from spine.provenance import canonical, dataset, versions
 from spine.registry import Registry
 from spine.store import Store
+from world.labels import LABELING
 from world.scenarios import Scenario
 
 ABOUT = {"code": {"commit": "0" * 40, "dirty": False, "changes": None}, "versions": versions()}
@@ -57,18 +60,22 @@ def test_bytes_load_back_into_the_same_model(data):
 def test_trained_models_rebuild_from_their_records():
     registry = Registry(Store(":memory:"))
     s = Scenario.draw(3, "concept")
-    first = train(registry, s, 0, None, ABOUT)
-    second = train(registry, s, s.at, first, ABOUT)
+    first = train(registry, s, WINDOW, None, ABOUT, LABELING)
+    second = train(registry, s, s.at + WINDOW, first, ABOUT, LABELING)
     assert [r["model"] for r in registry.lineage(second)] == [second, first]
-    assert registry.get(second)["step"] == s.at + WINDOW
+    record = registry.get(second)
+    assert record["step"] == s.at + WINDOW
+    for field in ("trained_on", "evaluated_on"):
+        recipe = json.loads(registry.store.get(record[field]))["recipe"]
+        assert recipe["as_of"] == record["step"] >= recipe["steps"][1]
     assert check(registry, first) == check(registry, second) == []
 
 
 def test_check_catches_a_record_that_lies_about_its_config():
     registry = Registry(Store(":memory:"))
     store = registry.store
-    x, y, trained_on = dataset(Scenario(3), 0, WINDOW)
-    tx, ty, evaluated_on = dataset(Scenario(3), WINDOW, WINDOW + TEST)
+    x, y, trained_on = dataset(Scenario(3), 0, WINDOW - TEST, LABELING, WINDOW)
+    tx, ty, evaluated_on = dataset(Scenario(3), WINDOW - TEST, WINDOW, LABELING, WINDOW)
     model = fit(x, y, {**CONFIG, "C": 0.01})
     h = registry.register({
         "model": store.put(to_bytes(model)),
@@ -76,7 +83,7 @@ def test_check_catches_a_record_that_lies_about_its_config():
         "evaluated_on": store.put(canonical(evaluated_on)),
         "config": store.put(canonical(CONFIG)),
         **ABOUT,
-        "metrics": {"accuracy": float((model.predict(tx) == ty).mean())},
+        "metrics": score(model, tx, ty),
         "parent": None,
         "step": WINDOW,
     })

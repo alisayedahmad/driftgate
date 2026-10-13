@@ -4,6 +4,7 @@ import subprocess
 import numpy as np
 
 from spine.provenance import canonical, code, data_hash, dataset, verify
+from world.labels import LABELING
 from world.scenarios import Scenario
 
 
@@ -26,12 +27,20 @@ def test_data_hash_sees_any_change():
 
 def test_a_dataset_document_regenerates_its_rows():
     s = Scenario.draw(3, "covariate")
-    x, y, doc = dataset(s, s.at - 5, s.at + 5)
-    assert len(x) == len(y) == 1000
+    x, y, doc = dataset(s, s.at - 5, s.at + 5, LABELING, s.at + 5)
+    assert len(x) == len(y) == doc["rows"]
     again = json.loads(canonical(doc))
     assert verify(again)
-    again["recipe"]["steps"][1] += 1
+    again["recipe"]["as_of"] += 1000
     assert not verify(again)
+
+
+def test_only_labels_back_by_as_of_are_kept():
+    s = Scenario(3)
+    early = dataset(s, 0, 50, LABELING, 50)[2]["rows"]
+    late = dataset(s, 0, 50, LABELING, 10_000)[2]["rows"]
+    every = dataset(s, 0, 50, {**LABELING, "rate": 1.0}, 10_000)[2]["rows"]
+    assert early < late < every == 50 * 100
 
 
 def git(root, *args):

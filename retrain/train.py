@@ -9,6 +9,7 @@ from sklearn.linear_model import LogisticRegression
 from spine.provenance import canonical, code, dataset, rows, verify, versions
 from spine.registry import Registry
 from spine.store import Store
+from world.labels import LABELING
 from world.scenarios import KINDS, Scenario
 
 CONFIG = {"C": 1.0, "max_iter": 1000}
@@ -34,15 +35,17 @@ def from_bytes(data):
     return pickle.loads(data)
 
 
-def train(registry, s, first, parent, about):
-    """fit on WINDOW steps of s from first, test on the TEST after, register it.
+def train(registry, s, step, parent, about, labeling):
+    """fit a model at `step` on what was known then, test it, register it.
 
-    about is {"code": ..., "versions": ...} for the record, read once per run.
-    the model counts as trained at the step after its window. returns its hash.
+    the window is the WINDOW steps of s before step, keeping the rows whose
+    label had come back by step under labeling: the first WINDOW - TEST steps
+    to fit on, the last TEST to test on. about is {"code": ..., "versions":
+    ...}, read once per run. returns the model hash.
     """
     store = registry.store
-    x, y, trained_on = dataset(s, first, first + WINDOW)
-    tx, ty, evaluated_on = dataset(s, first + WINDOW, first + WINDOW + TEST)
+    x, y, trained_on = dataset(s, step - WINDOW, step - TEST, labeling, step)
+    tx, ty, evaluated_on = dataset(s, step - TEST, step, labeling, step)
     model = fit(x, y, CONFIG)
     return registry.register({
         "model": store.put(to_bytes(model)),
@@ -50,10 +53,14 @@ def train(registry, s, first, parent, about):
         "evaluated_on": store.put(canonical(evaluated_on)),
         "config": store.put(canonical(CONFIG)),
         **about,
-        "metrics": {"accuracy": float((model.predict(tx) == ty).mean())},
+        "metrics": score(model, tx, ty),
         "parent": parent,
-        "step": first + WINDOW,
+        "step": step,
     })
+
+
+def score(model, x, y):
+    return {"accuracy": float((model.predict(x) == y).mean()), "rows": len(y)}
 
 
 def check(registry, model):
@@ -70,21 +77,22 @@ def check(registry, model):
     refit = fit(*rows(doc["trained_on"]["recipe"]), doc["config"])
     if hashlib.sha256(to_bytes(refit)).hexdigest() != model:
         problems.append("the refit model has other bytes")
-    tx, ty = rows(doc["evaluated_on"]["recipe"])
-    if {"accuracy": float((refit.predict(tx) == ty).mean())} != record["metrics"]:
+    if score(refit, *rows(doc["evaluated_on"]["recipe"])) != record["metrics"]:
         problems.append("the metrics come out different")
     return problems
 
 
 def describe(registry, model):
     r = registry.get(model)
-    trained = json.loads(registry.store.get(r["trained_on"]))["recipe"]["steps"]
-    tested = json.loads(registry.store.get(r["evaluated_on"]))["recipe"]["steps"]
+    fitted, tested = (json.loads(registry.store.get(r[field]))
+                      for field in ("trained_on", "evaluated_on"))
     parent = r["parent"][:12] if r["parent"] else "none"
     dirty = ", uncommitted changes" if r["code"]["dirty"] else ""
-    return (f"model   {model[:12]} trained on steps {trained[0]}-{trained[1] - 1}, "
-            f"parent {parent}, accuracy {r['metrics']['accuracy']:.3f} on steps "
-            f"{tested[0]}-{tested[1] - 1}, code {r['code']['commit'][:7]}{dirty}")
+    (a, b), (c, d) = fitted["recipe"]["steps"], tested["recipe"]["steps"]
+    return (f"model   {model[:12]} at step {r['step']}, parent {parent}, "
+            f"code {r['code']['commit'][:7]}{dirty}\n"
+            f"        fit on {fitted['rows']} labels from steps {a}-{b - 1}, accuracy "
+            f"{r['metrics']['accuracy']:.3f} on {tested['rows']} labels from steps {c}-{d - 1}")
 
 
 def main():
@@ -101,8 +109,9 @@ def main():
     about = {"code": code(), "versions": versions()}
 
     s = Scenario.draw(args.seed, args.kind)
-    first = train(registry, s, 0, None, about)
-    second = train(registry, s, s.at if s.at is not None else 500, first, about)
+    first = train(registry, s, WINDOW, None, about, LABELING)
+    after = s.at if s.at is not None else 500
+    second = train(registry, s, after + WINDOW, first, about, LABELING)
     print(f"registry {path}")
     for model in (first, second):
         print(describe(registry, model))

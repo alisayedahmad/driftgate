@@ -101,9 +101,10 @@ the bytes against their hash, so a damaged artifact is refused rather than
 loaded.
 
 `spine/provenance.py` names everything else a model depends on. A dataset is
-the sha256 of its rows plus the recipe that regenerates them, a scenario and a
-range of steps, so the rows never need to be kept and can be checked again at
-any time. The code is the commit, whether the working tree had changes, and a
+the sha256 of its rows plus the recipe that regenerates them: a scenario, a
+range of steps, the labeling, and the step it was known at, so that only rows
+whose label had come back by then are in it. The rows never need to be kept
+and can be checked again at any time. The code is the commit, whether the working tree had changes, and a
 hash of those changes. Configs are hashed as canonical JSON.
 
 `spine/registry.py` keeps one record per model: the datasets it was trained
@@ -117,9 +118,11 @@ identical runs give identical registries.
 make train SEED=7 KIND=concept
 ```
 
-fits a model on the first steps of a scenario and another one after its
-change, registers both with the first as the second's parent, and prints the
-lineage. Then it rebuilds each model from its record alone: the datasets are
+fits a model at an early step of a scenario and another one some time after
+its change, registers both with the first as the second's parent, and prints
+the lineage. A model only uses what was known at the step it's trained at: the
+labeled rows of the steps before it, the most recent of them held out to test
+it on. Then it rebuilds each model from its record alone: the datasets are
 regenerated from their recipes and checked against their hashes, the model is
 refit with the stored config and has to come out with the same bytes, and the
 metrics have to come out the same. Each run starts a fresh registry in

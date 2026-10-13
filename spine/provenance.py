@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
+from world.labels import fate
 from world.scenarios import Scenario
 
 ROOT = Path(__file__).parents[1]
@@ -27,20 +28,32 @@ def data_hash(x, y):
 
 
 def rows(recipe):
-    """the (x, y) a recipe stands for: its scenario's batches over steps [first, stop)."""
-    s = Scenario(**recipe["scenario"])
-    x, y = zip(*(s.batch(t) for t in range(*recipe["steps"])))
-    return np.concatenate(x), np.concatenate(y)
+    """the (x, y) a recipe stands for.
 
-
-def dataset(s, first, stop):
-    """rows of scenario s over steps [first, stop), as x, y and the document naming them.
-
-    the document holds the recipe and the hash of the rows, not the rows.
+    the rows of its scenario over steps [first, stop) whose label, under its
+    labeling, had come back by step as_of. y is the label the pipeline saw.
     """
-    recipe = {"scenario": asdict(s), "steps": [first, stop]}
+    s = Scenario(**recipe["scenario"])
+    xs, ys = [], []
+    for t in range(*recipe["steps"]):
+        x, y = s.batch(t)
+        labeled, arrives = fate(s.seed, t, recipe["labeling"], len(y))
+        known = labeled & (arrives <= recipe["as_of"])
+        xs.append(x[known])
+        ys.append(y[known])
+    return np.concatenate(xs), np.concatenate(ys)
+
+
+def dataset(s, first, stop, labeling, as_of):
+    """what was known at step as_of about steps [first, stop) of scenario s.
+
+    returns x, y and the document naming them, which holds the recipe, the
+    number of rows and their hash, not the rows.
+    """
+    recipe = {"scenario": asdict(s), "steps": [first, stop], "labeling": labeling,
+              "as_of": as_of}
     x, y = rows(recipe)
-    return x, y, {"recipe": recipe, "data": data_hash(x, y)}
+    return x, y, {"recipe": recipe, "rows": len(y), "data": data_hash(x, y)}
 
 
 def verify(doc):
