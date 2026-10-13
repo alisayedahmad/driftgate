@@ -125,6 +125,13 @@ refit with the stored config and has to come out with the same bytes, and the
 metrics have to come out the same. Each run starts a fresh registry in
 `~/.local/share/driftgate/`.
 
+## Serving
+
+`serving/log.py` keeps every prediction that was served: the step, the inputs,
+the model that answered and its probabilities. A label only enters the log at
+the step it comes back, and asking what was known at an earlier step hides the
+labels that came later, so nothing can read a label before it existed.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
