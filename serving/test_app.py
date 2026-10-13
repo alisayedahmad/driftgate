@@ -101,3 +101,16 @@ def test_http_refuses_what_it_cant_serve(served):
     assert client.post("/predict", json={"step": "soon", "rows": x.tolist()}).status_code == 422
     assert client.post("/predict", json={"step": 0, "rows": x.tolist()}).status_code == 200
     assert client.post("/predict", json={"step": 0, "rows": x.tolist()}).status_code == 409
+
+
+def test_watchers_see_each_step_once_its_labels_are_in(served):
+    registry, s, model = served
+    service = Service(registry, model)
+    seen = []
+    steps = range(WINDOW, WINDOW + 40)
+    replay(service, s, LABELING, steps,
+           [lambda t, log: seen.append((t, log.last, len(log.landed(t)["label"])))])
+    known = service.log.as_of(steps[-1])
+    assert [t for t, _, _ in seen] == list(steps)
+    assert all(last == t for t, last, _ in seen)
+    assert [n for _, _, n in seen] == [(known["arrived"] == t).sum() for t in steps]

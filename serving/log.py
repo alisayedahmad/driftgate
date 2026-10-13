@@ -17,7 +17,8 @@ class Log:
         self.n = 0
         self.last = None
         self.models = []
-        self.rows = {}
+        self.span = {}
+        self.landings = {}
         self.columns = {"step": np.empty(0, np.int64), "x": np.empty((0, FEATURES)),
                         "proba": np.empty((0, CLASSES + 1)), "model": np.empty(0, np.int64),
                         "label": np.empty(0, np.int64), "arrived": np.empty(0, np.int64)}
@@ -37,7 +38,7 @@ class Log:
         c = self.columns
         c["step"][at], c["x"][at], c["proba"][at] = step, x, proba
         c["model"][at], c["label"][at], c["arrived"][at] = self.models.index(model), UNKNOWN, UNKNOWN
-        self.rows[step] = at
+        self.span[step] = at
         self.last = step
         self.n += len(x)
 
@@ -45,7 +46,7 @@ class Log:
         """labels y for rows (indices within step served_at), known from `step` on."""
         if step <= served_at:
             raise ValueError(f"a label can't arrive at {step} for a row served at {served_at}")
-        at = self.rows[served_at]
+        at = self.span[served_at]
         rows = np.asarray(rows)
         if rows.size and (rows.min() < 0 or rows.max() >= at.stop - at.start):
             raise ValueError(f"step {served_at} has {at.stop - at.start} rows")
@@ -54,6 +55,20 @@ class Log:
             raise ValueError("a label arrived twice")
         self.columns["label"][rows] = y
         self.columns["arrived"][rows] = step
+        self.landings.setdefault(step, []).append(rows)
+
+    def batch(self, step):
+        """the rows served at `step`, as copies of x, proba and model (an index into models)."""
+        at = self.span[step]
+        return {name: self.columns[name][at].copy() for name in ("x", "proba", "model")}
+
+    def landed(self, step):
+        """the labels that arrived at `step` with their rows: step served, x, proba, label.
+
+        arrays are empty when nothing arrived.
+        """
+        at = np.concatenate(self.landings.get(step, [np.empty(0, np.int64)]))
+        return {name: self.columns[name][at] for name in ("step", "x", "proba", "label")}
 
     def as_of(self, t):
         """what was known at step t: the rows served up to t, with labels arrived by t.

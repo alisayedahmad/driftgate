@@ -35,8 +35,11 @@ class Service:
         return p
 
 
-def replay(service, s, labeling, steps):
-    """serve the given steps of scenario s in order, labels coming back as labeling says."""
+def replay(service, s, labeling, steps, watch=()):
+    """serve the given steps of scenario s in order, labels coming back as labeling says.
+
+    after each step, once its labels are in, every callable in watch gets (step, log).
+    """
     arrivals = Arrivals(s.seed, labeling)
     for t in steps:
         x, y = s.batch(t)
@@ -44,6 +47,8 @@ def replay(service, s, labeling, steps):
         arrivals.send(t, y)
         for served_at, rows, labels in arrivals.due(t):
             service.log.arrived(t, served_at, rows, labels)
+        for see in watch:
+            see(t, service.log)
 
 
 class Rows(BaseModel):

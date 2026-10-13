@@ -72,3 +72,25 @@ def test_save_writes_every_row():
     assert row[0] == 0 and row[-2:] == (1, 2)
     assert np.array_equal(row[1:1 + FEATURES], rows(0)[0][5])
     assert db.execute("select * from served_by").fetchall() == [(0, "a" * 64)]
+
+
+def test_a_step_reads_back_as_served():
+    log = filled(5)
+    got = log.batch(3)
+    assert np.array_equal(got["x"], rows(3)[0])
+    assert np.array_equal(got["proba"], rows(3)[1])
+    assert (got["model"] == 0).all()
+    with pytest.raises(KeyError):
+        log.batch(9)
+
+
+def test_landed_gives_what_arrived_at_that_step_only():
+    log = filled(5)
+    log.arrived(3, 0, [2, 7], [1, 3])
+    log.arrived(3, 1, [4], [0])
+    log.arrived(4, 1, [5], [2])
+    got = log.landed(3)
+    assert got["step"].tolist() == [0, 0, 1]
+    assert got["label"].tolist() == [1, 3, 0]
+    assert np.array_equal(got["x"], np.stack([rows(0)[0][2], rows(0)[0][7], rows(1)[0][4]]))
+    assert log.landed(2)["x"].shape == (0, FEATURES)

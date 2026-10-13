@@ -172,6 +172,9 @@ step. Its threshold trades how soon a real shift is caught against how often
 it fires for nothing, and the tests check both against Siegmund's
 approximation.
 
+Monitors follow the log as a scenario is replayed: after each step they read
+the rows just served and the labels that just came back, nothing else.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
