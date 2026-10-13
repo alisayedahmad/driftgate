@@ -175,6 +175,12 @@ approximation.
 Monitors follow the log as a scenario is replayed: after each step they read
 the rows just served and the labels that just came back, nothing else.
 
+`monitor/input_drift.py` watches the mean of each feature, step by step,
+against every row of the window the model was trained on, labeled or not,
+regenerated from its record. A concept break or label noise leaves the inputs
+exactly as they were, so this monitor can't see either of them: its path is
+bit for bit the one of the scenario's twin.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
