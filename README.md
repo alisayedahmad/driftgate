@@ -67,6 +67,14 @@ The tests keep a fingerprint of what a few seeds draw for every kind, in
 even when every other test passes. `make fingerprints` rewrites the file when
 that change is meant.
 
+## Labels
+
+`world/labels.py` decides, for every row, whether its label ever comes back
+and when. By default three rows in ten get one, after a delay of about ten
+steps at the median with a long tail, and never during the step the row was
+served. The draw only depends on the seed and the step, so a scenario and its
+twin get the same labels at the same steps.
+
 ## Looking at a scenario
 
 ```bash
