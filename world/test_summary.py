@@ -1,7 +1,7 @@
 import numpy as np
 
 from world.scenarios import Scenario
-from world.summary import WINDOW, rolling, trace
+from world.summary import trace
 
 
 def test_before_a_break_the_old_model_is_the_best_one():
@@ -19,10 +19,3 @@ def test_noise_moves_what_is_measured_and_nothing_true():
     assert np.array_equal(r["measured"][:5], twin["measured"][:5])
     assert not np.array_equal(r["measured"][5:], twin["measured"][5:])
 
-
-def test_rolling_is_a_trailing_mean_over_full_windows():
-    a = np.arange(100.0)
-    out = rolling(a)
-    assert len(out) == len(a) - WINDOW + 1
-    assert out[0] == a[:WINDOW].mean()
-    assert out[-1] == a[-WINDOW:].mean()

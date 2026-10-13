@@ -3,14 +3,12 @@ from pathlib import Path
 
 import numpy as np
 
+from charts import MUTED, SERIES, mark, panel, panels, rolling, save
 from world.scenarios import KINDS, Scenario
 from world.stream import CLASSES, INFORMATIVE
 
 STEPS = 1000
 WINDOW = 25
-
-SURFACE, INK, MUTED, GRID, AXIS = "#fcfcfb", "#0b0b0b", "#898781", "#e1e0d9", "#c3c2b7"
-SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"]
 
 
 def trace(s, steps=STEPS):
@@ -67,72 +65,21 @@ def table(s, r):
     return "\n".join(lines)
 
 
-def rolling(a):
-    # trailing mean over full windows, value i ends at step i + WINDOW - 1
-    c = np.concatenate([[0.0], np.cumsum(a)])
-    return (c[WINDOW:] - c[:-WINDOW]) / WINDOW
-
-
 def plot(s, r, path):
-    # imported here, the tests only need trace and don't pay for matplotlib
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    fig, (top, bottom) = plt.subplots(2, 1, figsize=(9, 6.4), sharex=True, facecolor=SURFACE,
-                                      gridspec_kw={"height_ratios": [3, 2]})
+    fig, (top, bottom) = panels([3, 2])
     steps = np.arange(WINDOW - 1, len(r["best"]))
     # best goes last and thinner, it often sits exactly on true
     lines = [("old model, true", r["true"], SERIES[0], 1.6),
              ("old model, measured", r["measured"], SERIES[1], 1.6),
              ("best possible", r["best"], MUTED, 1.0)]
-    _panel(top, steps, lines, "accuracy")
+    panel(top, steps, [(n, rolling(v, WINDOW), c, w) for n, v, c, w in lines], "accuracy")
     shown = [c for c in range(CLASSES + 1) if r["freq"][:, c].any()]
-    _panel(bottom, steps, [(f"class {c}", r["freq"][:, c], SERIES[c], 1.6) for c in shown],
-           "label share")
+    panel(bottom, steps, [(f"class {c}", rolling(r["freq"][:, c], WINDOW), SERIES[c], 1.6)
+                          for c in shown], "label share")
     bottom.set_xlabel("step", color=MUTED)
     if s.at is not None:
-        for ax in (top, bottom):
-            ax.axvline(s.at, color=AXIS, linewidth=1, zorder=1)
-        top.annotate(f"change at {s.at}", (s.at, 1), xycoords=("data", "axes fraction"),
-                     xytext=(4, -12), textcoords="offset points", color=MUTED, fontsize=9)
-    fig.suptitle(describe(s) + f"\nmeans over the last {WINDOW} steps", color=INK, fontsize=10,
-                 x=0.06, ha="left")
-    fig.tight_layout()
-    fig.subplots_adjust(right=0.8)
-    fig.savefig(path, dpi=110, facecolor=SURFACE)
-    plt.close(fig)
-
-
-def _panel(ax, steps, lines, name):
-    ax.set_facecolor(SURFACE)
-    for label, values, color, width in lines:
-        ax.plot(steps, rolling(values), color=color, linewidth=width, label=label)
-    ax.grid(axis="y", color=GRID, linewidth=0.8)
-    ax.set_axisbelow(True)
-    for side in ("top", "right"):
-        ax.spines[side].set_visible(False)
-    for side in ("left", "bottom"):
-        ax.spines[side].set_color(AXIS)
-    ax.tick_params(colors=MUTED, labelsize=9)
-    ax.set_ylabel(name, color=MUTED)
-    ax.legend(loc="lower left", bbox_to_anchor=(0, 1), frameon=False, fontsize=9,
-              labelcolor=INK, ncol=len(lines))
-    if len(lines) <= 4:
-        ends = [(rolling(values)[-1], label) for label, values, _, _ in lines]
-        _label_ends(ax, steps[-1], ends)
-
-
-def _label_ends(ax, x, ends):
-    # push labels apart so they don't overlap, at least 6% of the axis height
-    lo, hi = ax.get_ylim()
-    gap = 0.06 * (hi - lo)
-    placed = []
-    for y, label in sorted(ends):
-        y = max(y, placed[-1] + gap) if placed else y
-        placed.append(y)
-        ax.annotate(label, (x, y), xytext=(6, 0), textcoords="offset points", va="center",
-                    color=INK, fontsize=8, annotation_clip=False)
+        mark((top, bottom), s.at, f"change at {s.at}")
+    save(fig, describe(s) + f"\nmeans over the last {WINDOW} steps", path)
 
 
 def main():
