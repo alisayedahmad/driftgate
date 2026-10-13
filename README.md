@@ -181,6 +181,12 @@ regenerated from its record. A concept break or label noise leaves the inputs
 exactly as they were, so this monitor can't see either of them: its path is
 bit for bit the one of the scenario's twin.
 
+`monitor/prediction_drift.py` watches the share of each predicted class, step
+by step, against what the model predicted on that same window. It sees a
+covariate shift or a new class within a few steps, and it is just as blind as
+the input monitor to a concept break or to label noise: the inputs are the
+same and so is the model, so the predictions are too.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
