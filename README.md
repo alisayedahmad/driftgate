@@ -187,6 +187,14 @@ covariate shift or a new class within a few steps, and it is just as blind as
 the input monitor to a concept break or to label noise: the inputs are the
 same and so is the model, so the predictions are too.
 
+`monitor/performance.py` reads the labels as they land. One monitor watches
+their error rate against the accuracy the model was tested at; it sees a
+concept break, late, and it also fires on label noise, where the model hasn't
+got any worse. The other watches the share of each class among them against
+the labels known at training time, and the first label of a class never seen
+before is an alarm on its own. A concept break leaves those shares where they
+were and label noise moves them, which is how the two can be told apart.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
