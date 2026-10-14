@@ -67,6 +67,13 @@ The tests keep a fingerprint of what a few seeds draw for every kind, in
 even when every other test passes. `make fingerprints` rewrites the file when
 that change is meant.
 
+`world/truth.py` judges a model the way the pipeline never can. It draws fresh
+rows from the world as it stands at a given step, from random numbers the
+stream never uses, and scores the model against the true P(y|x) rather than
+against drawn labels, so the only noise left is in the inputs. Under label
+noise the truth is the clean one, and every model judged at the same step is
+scored on the same rows.
+
 ## Labels
 
 `world/labels.py` decides, for every row, whether its label ever comes back

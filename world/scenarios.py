@@ -3,8 +3,8 @@ from functools import cache, cached_property
 
 import numpy as np
 
-from world.stream import (CALIBRATION_ROWS, CHANGE, CLASSES, FEATURES, INFORMATIVE, MEMBER,
-                          NOISE, ROWS, SCRIPT, World, label)
+from world.stream import (CALIBRATION_ROWS, CHANGE, CLASSES, FEATURES, FRESH, INFORMATIVE,
+                          MEMBER, NOISE, ROWS, SCRIPT, World, label)
 
 KINDS = ("none", "covariate", "concept", "noise", "new")
 AT = (300, 700)
@@ -108,13 +108,12 @@ class Scenario:
         differs from the true label, which is the twin's. under new, y can be
         CLASSES.
         """
-        x, u = self.world.draws(step, n)
-        if self.kind == "covariate" and step >= self.at:
-            x = x + self.shift
+        z, u = self.world.draws(step, n)
+        member = None
         if self.kind == "new" and step >= self.at:
-            new = np.random.default_rng([self.seed, MEMBER, step]).random(n) < self.size
-            x = x.copy()
-            x[new, :INFORMATIVE] = self.center + NEW_SPREAD * x[new, :INFORMATIVE]
+            member = np.random.default_rng([self.seed, MEMBER, step]).random(n)
+        x, new = self._inputs(z, member, step)
+        if new is not None:
             # rows are labeled by the group they came from, proba is the posterior
             y = label(self.world.proba(x), u)
             y[new] = CLASSES
@@ -125,6 +124,28 @@ class Scenario:
             hit = np.random.default_rng([self.seed, NOISE, step]).random(n) < self.size
             y = np.where(hit & (y == source), target, y)
         return x, y
+
+    def fresh(self, step, n):
+        """n rows of x drawn as the world draws them at `step`, from a key the stream never uses.
+
+        for judging models on rows the pipeline can't have seen. every call
+        with the same step gives the same rows, so models judged at one step
+        are compared on identical rows.
+        """
+        g = np.random.default_rng([self.seed, FRESH, step])
+        z = g.standard_normal((n, FEATURES))
+        return self._inputs(z, g.random(n), step)[0]
+
+    def _inputs(self, z, member, step):
+        # x from standard normal z, and under new which rows belong to the new class
+        if self.kind == "covariate" and step >= self.at:
+            return z + self.shift, None
+        if self.kind == "new" and step >= self.at:
+            new = member < self.size
+            x = z.copy()
+            x[new, :INFORMATIVE] = self.center + NEW_SPREAD * z[new, :INFORMATIVE]
+            return x, new
+        return z, None
 
     def proba(self, x, step):
         """true P(y|x) at `step`.
