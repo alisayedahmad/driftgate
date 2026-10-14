@@ -10,6 +10,7 @@ import numpy as np
 
 from world.labels import fate
 from world.scenarios import Scenario
+from world.stream import ROWS
 
 ROOT = Path(__file__).parents[1]
 
@@ -27,6 +28,12 @@ def data_hash(x, y):
     return h.hexdigest()
 
 
+def _known(recipe, step, n=ROWS):
+    # which of the n rows served at step had their label back by as_of
+    labeled, arrives = fate(recipe["scenario"]["seed"], step, recipe["labeling"], n)
+    return labeled & (arrives <= recipe["as_of"])
+
+
 def rows(recipe):
     """the (x, y) a recipe stands for.
 
@@ -37,21 +44,36 @@ def rows(recipe):
     xs, ys = [], []
     for t in range(*recipe["steps"]):
         x, y = s.batch(t)
-        labeled, arrives = fate(s.seed, t, recipe["labeling"], len(y))
-        known = labeled & (arrives <= recipe["as_of"])
-        xs.append(x[known])
-        ys.append(y[known])
+        mask = _known(recipe, t, len(y))
+        xs.append(x[mask])
+        ys.append(y[mask])
     return np.concatenate(xs), np.concatenate(ys)
 
 
-def dataset(s, first, stop, labeling, as_of):
+def row_weights(recipe):
+    """one weight per row of rows(recipe), in the same order.
+
+    the recipe's weights, if it has any, are [first, stop, w] lists: the rows
+    of steps in [first, stop) weigh w. every other row weighs 1.
+    """
+    out = []
+    for t in range(*recipe["steps"]):
+        w = next((w for first, stop, w in recipe.get("weights", []) if first <= t < stop), 1.0)
+        out.append(np.full(_known(recipe, t).sum(), float(w)))
+    return np.concatenate(out)
+
+
+def dataset(s, first, stop, labeling, as_of, weights=()):
     """what was known at step as_of about steps [first, stop) of scenario s.
 
+    weights are [first, stop, w] lists for row_weights, kept in the recipe.
     returns x, y and the document naming them, which holds the recipe, the
     number of rows and their hash, not the rows.
     """
     recipe = {"scenario": asdict(s), "steps": [first, stop], "labeling": labeling,
               "as_of": as_of}
+    if weights:
+        recipe["weights"] = [list(part) for part in weights]
     x, y = rows(recipe)
     return x, y, {"recipe": recipe, "rows": len(y), "data": data_hash(x, y)}
 

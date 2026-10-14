@@ -3,7 +3,7 @@ import subprocess
 
 import numpy as np
 
-from spine.provenance import canonical, code, data_hash, dataset, verify
+from spine.provenance import canonical, code, data_hash, dataset, row_weights, verify
 from world.labels import LABELING
 from world.scenarios import Scenario
 
@@ -33,6 +33,18 @@ def test_a_dataset_document_regenerates_its_rows():
     assert verify(again)
     again["recipe"]["as_of"] += 1000
     assert not verify(again)
+
+
+def test_row_weights_follow_the_steps_of_the_rows():
+    s = Scenario(3)
+    _, y, doc = dataset(s, 0, 30, LABELING, 50, [[10, 20, 0.5]])
+    before, inside = (dataset(s, a, b, LABELING, 50)[2]["rows"] for a, b in ((0, 10), (10, 20)))
+    w = row_weights(doc["recipe"])
+    assert len(w) == len(y)
+    assert (w[before:before + inside] == 0.5).all()
+    assert (w[:before] == 1).all() and (w[before + inside:] == 1).all()
+    plain = dataset(s, 0, 30, LABELING, 50)[2]["recipe"]
+    assert "weights" not in plain and (row_weights(plain) == 1).all()
 
 
 def test_only_labels_back_by_as_of_are_kept():

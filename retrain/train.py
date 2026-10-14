@@ -5,7 +5,7 @@ import pickle
 
 from sklearn.linear_model import LogisticRegression
 
-from spine.provenance import canonical, code, dataset, rows, verify, versions
+from spine.provenance import canonical, code, dataset, row_weights, rows, verify, versions
 from spine.registry import fresh
 from world.labels import LABELING
 from world.scenarios import KINDS, Scenario
@@ -15,12 +15,13 @@ WINDOW = 200
 TEST = 50
 
 
-def fit(x, y, config):
-    """multinomial logistic regression of labels y on rows x.
+def fit(x, y, config, weights=None):
+    """multinomial logistic regression of labels y on rows x, each row counting its weight.
 
     config goes to LogisticRegression as keyword arguments, CONFIG is the default.
+    no weights is every row weighing 1, and gives the same bytes as all ones.
     """
-    return LogisticRegression(**config).fit(x, y)
+    return LogisticRegression(**config).fit(x, y, sample_weight=weights)
 
 
 def to_bytes(model):
@@ -33,18 +34,23 @@ def from_bytes(data):
     return pickle.loads(data)
 
 
-def train(registry, s, step, parent, about, labeling):
+def train(registry, s, step, parent, about, labeling, plan=None):
     """fit a model at `step` on what was known then, test it, register it.
 
-    the window is the WINDOW steps of s before step, keeping the rows whose
-    label had come back by step under labeling: the first WINDOW - TEST steps
-    to fit on, the last TEST to test on. about is {"code": ..., "versions":
-    ...}, read once per run. returns the model hash.
+    only rows of s whose label had come back by step under labeling are used.
+    plan is a dict as retrain.window makes them: fit and test, [first, stop)
+    step ranges to fit and test on, and weights, [first, stop, w] lists for
+    the fit rows. without one the window is the WINDOW steps before step, the
+    first WINDOW - TEST to fit on and the last TEST to test on, every row
+    weighing 1. about is {"code": ..., "versions": ...}, read once per run.
+    returns the model hash.
     """
+    if plan is None:
+        plan = {"fit": [step - WINDOW, step - TEST], "weights": [], "test": [step - TEST, step]}
     store = registry.store
-    x, y, trained_on = dataset(s, step - WINDOW, step - TEST, labeling, step)
-    tx, ty, evaluated_on = dataset(s, step - TEST, step, labeling, step)
-    model = fit(x, y, CONFIG)
+    x, y, trained_on = dataset(s, *plan["fit"], labeling, step, plan["weights"])
+    tx, ty, evaluated_on = dataset(s, *plan["test"], labeling, step)
+    model = fit(x, y, CONFIG, row_weights(trained_on["recipe"]))
     return registry.register({
         "model": store.put(to_bytes(model)),
         "trained_on": store.put(canonical(trained_on)),
@@ -64,15 +70,17 @@ def score(model, x, y):
 def check(registry, model):
     """rebuild a registered model from its record alone, return what doesn't match.
 
-    regenerates both datasets from their recipes, refits with the stored config,
-    and recomputes the metrics. an empty list means the record holds up.
+    regenerates both datasets from their recipes, refits with the stored config
+    and the weights in the recipe, and recomputes the metrics. an empty list
+    means the record holds up.
     """
     record = registry.get(model)
     doc = {field: json.loads(registry.store.get(record[field]))
            for field in ("trained_on", "evaluated_on", "config")}
     problems = [f"{field} rows don't hash the same" for field in ("trained_on", "evaluated_on")
                 if not verify(doc[field])]
-    refit = fit(*rows(doc["trained_on"]["recipe"]), doc["config"])
+    recipe = doc["trained_on"]["recipe"]
+    refit = fit(*rows(recipe), doc["config"], row_weights(recipe))
     if hashlib.sha256(to_bytes(refit)).hexdigest() != model:
         problems.append("the refit model has other bytes")
     if score(refit, *rows(doc["evaluated_on"]["recipe"])) != record["metrics"]:

@@ -98,9 +98,10 @@ CSV, next to a plot of them.
 
 ## Models
 
-`retrain/train.py` fits a multinomial logistic regression and saves it as
-bytes. The same data and config give the same bytes, in any process and with
-any number of threads, so a model can be known by the hash of those bytes.
+`retrain/train.py` fits a multinomial logistic regression, each row counting
+for its weight, and saves it as bytes. The same data and config give the same
+bytes, in any process and with any number of threads, so a model can be known
+by the hash of those bytes.
 
 ## Traceability
 
@@ -112,7 +113,8 @@ loaded.
 `spine/provenance.py` names everything else a model depends on. A dataset is
 the sha256 of its rows plus the recipe that regenerates them: a scenario, a
 range of steps, the labeling, and the step it was known at, so that only rows
-whose label had come back by then are in it. The rows never need to be kept
+whose label had come back by then are in it. When its rows don't all weigh the
+same, the recipe says which steps weigh what. The rows never need to be kept
 and can be checked again at any time. The code is the commit, whether the working tree had changes, and a
 hash of those changes. Configs are hashed as canonical JSON.
 
@@ -231,6 +233,14 @@ changed and it retrains. Under label noise the errors sometimes go off before
 the label shares do, and then it retrains anyway. Inputs that move while the
 errors stay put call for nothing, and a label of a class the model never saw
 means retraining once enough of them are back to learn it from.
+
+`retrain/window.py` chooses what the new model learns from. It waits a few
+steps after the decision for more labels to come back, holds out the most
+recent steps to test the new model on, and cuts the rest a little before where
+the change was estimated to start. What came before the cut can be dropped,
+kept at a lower weight, or kept in part, the steps nearest the cut, in case the
+alarm was wrong. Each step since the change goes either to training or to the
+test set, and with labels coming back late neither gets many.
 
 ## Setup
 
