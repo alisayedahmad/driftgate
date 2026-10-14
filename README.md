@@ -220,6 +220,18 @@ prints the thresholds that keep false alarms under a budget and writes the
 whole trade-off to `results/monitor/`. No threshold is good at both, which is
 the point.
 
+## Retraining
+
+`retrain/trigger.py` turns the alarms into one decision about the serving
+model. The naive policy retrains as soon as the errors go up. The informed one
+looks at what else has moved by then: if the inputs or the predictions did, the
+world changed and it retrains; if only the shares of the labels did, the labels
+changed and not the model, so it holds; if nothing else did, the concept
+changed and it retrains. Under label noise the errors sometimes go off before
+the label shares do, and then it retrains anyway. Inputs that move while the
+errors stay put call for nothing, and a label of a class the model never saw
+means retraining once enough of them are back to learn it from.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
