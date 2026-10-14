@@ -59,3 +59,5 @@ def test_the_first_label_of_a_new_class_is_an_alarm():
     step = alarm(shares)
     assert step is not None and step > AT
     assert shares.path[shares.steps.index(step)] == np.inf
+    # its stream had no value until then
+    assert shares.starts[shares.steps.index(step)] == step

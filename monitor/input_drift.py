@@ -1,26 +1,23 @@
 import numpy as np
 
-from monitor.cusum import Cusum
+from monitor.cusum import Monitor
 from monitor.reference import window
 from world.stream import FEATURES
 
 
-class InputDrift:
+class InputDrift(Monitor):
     """a CUSUM per feature on each step's mean, against the model's training window.
 
     the reference mean and spread come from every row of the window, see
-    monitor.reference. update is a replay watcher; after step t, path holds
-    the CUSUM statistic and steps the t.
+    monitor.reference. update is a replay watcher, Monitor says what it keeps.
     """
 
     def __init__(self, registry, model, k=0.5):
         x = window(registry, model)
         self.mean, self.sd = x.mean(axis=0), x.std(axis=0)
-        self.cusum = Cusum(FEATURES, k)
-        self.steps, self.path = [], []
+        super().__init__(FEATURES, k)
 
     def update(self, step, log):
         x = log.batch(step)["x"]
         z = (x.mean(axis=0) - self.mean) / (self.sd / np.sqrt(len(x)))
-        self.steps.append(step)
-        self.path.append(self.cusum.update(z))
+        self.record(step, z)

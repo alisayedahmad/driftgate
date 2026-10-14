@@ -202,6 +202,12 @@ the labels known at training time, and the first label of a class never seen
 before is an alarm on its own. A concept break leaves those shares where they
 were and label noise moves them, which is how the two can be told apart.
 
+Every monitor also says where the change behind an alarm started: the step its
+largest CUSUM sum last rose from zero, which is Page's estimate. If that sum
+was already off zero when the change came, the estimate lands before it. The
+two label monitors count in the steps labels come back at, so they place the
+start a few steps after the rows the change hit.
+
 ```bash
 make monitor
 ```
@@ -209,9 +215,10 @@ make monitor
 runs every kind of scenario on seeds set aside for tuning, with all four
 monitors watching, and for each monitor and threshold measures how often it
 fires on runs where nothing changed against how many changes of each kind it
-catches, and how late. It prints the thresholds that keep false alarms under a
-budget and writes the whole trade-off to `results/monitor/`. No threshold is
-good at both, which is the point.
+catches, how late, and how far from the real change it puts the start. It
+prints the thresholds that keep false alarms under a budget and writes the
+whole trade-off to `results/monitor/`. No threshold is good at both, which is
+the point.
 
 ## Setup
 

@@ -19,13 +19,18 @@ def test_false_alarms_and_detections_are_counted_apart():
     caught[25:] = 20.0
     early = flat.copy()
     early[5:] = 20.0
-    runs = [("none", 0, None, dict.fromkeys(SIGNALS, flat)),
-            ("none", 1, None, dict.fromkeys(SIGNALS, noisy)),
-            ("concept", 2, WINDOW + 20, dict.fromkeys(SIGNALS, caught)),
-            ("concept", 3, WINDOW + 20, dict.fromkeys(SIGNALS, early))]
+    # the caught run puts the start two steps before the change, the early one long before
+    began = dict.fromkeys(SIGNALS, np.full(800, WINDOW + 18.0))
+    runs = [("none", 0, None, dict.fromkeys(SIGNALS, flat), began),
+            ("none", 1, None, dict.fromkeys(SIGNALS, noisy), began),
+            ("concept", 2, WINDOW + 20, dict.fromkeys(SIGNALS, caught), began),
+            ("concept", 3, WINDOW + 20, dict.fromkeys(SIGNALS, early),
+             dict.fromkeys(SIGNALS, np.full(800, WINDOW + 3.0)))]
     row = tradeoff(runs, np.array([4.0, 10.0]))["errors"]
     assert row["false"].tolist() == [0.5, 0.0]
     assert row["concept detected"].tolist() == [0.5, 0.5]
     assert row["concept delay"].tolist() == [5.0, 5.0]
+    assert row["concept start"].tolist() == row["concept start q90"].tolist() == [-2.0, -2.0]
     assert np.isnan(row["covariate delay"]).all()
+    assert np.isnan(row["covariate start"]).all()
     assert operating({"errors": row}, 0.05) == {"errors": 1}
