@@ -195,6 +195,17 @@ the labels known at training time, and the first label of a class never seen
 before is an alarm on its own. A concept break leaves those shares where they
 were and label noise moves them, which is how the two can be told apart.
 
+```bash
+make monitor
+```
+
+runs every kind of scenario on seeds set aside for tuning, with all four
+monitors watching, and for each monitor and threshold measures how often it
+fires on runs where nothing changed against how many changes of each kind it
+catches, and how late. It prints the thresholds that keep false alarms under a
+budget and writes the whole trade-off to `results/monitor/`. No threshold is
+good at both, which is the point.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python

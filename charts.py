@@ -10,22 +10,31 @@ def rolling(a, window):
     return (c[window:] - c[:-window]) / window
 
 
-def panels(heights):
+def panels(heights, height=6.4):
     """a figure of stacked panels sharing x, one per entry of heights, as (fig, axes)."""
     # imported here, code that only computes numbers doesn't pay for matplotlib
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    return plt.subplots(len(heights), 1, figsize=(9, 6.4), sharex=True, facecolor=SURFACE,
+    return plt.subplots(len(heights), 1, figsize=(9, height), sharex=True, facecolor=SURFACE,
                         gridspec_kw={"height_ratios": heights})
 
 
 def panel(ax, x, lines, name):
     """draw lines, each (label, values, color, width), on ax and call the axis name."""
-    ax.set_facecolor(SURFACE)
     for label, values, color, width in lines:
         ax.plot(x, values, color=color, linewidth=width, label=label)
+    style(ax, name)
+    if len(lines) > 1:
+        legend(ax, len(lines))
+    if 1 < len(lines) <= 4:
+        _label_ends(ax, x[-1], [(values[-1], label) for label, values, _, _ in lines])
+
+
+def style(ax, name):
+    """the house look for ax, its y axis called name."""
+    ax.set_facecolor(SURFACE)
     ax.grid(axis="y", color=GRID, linewidth=0.8)
     ax.set_axisbelow(True)
     for side in ("top", "right"):
@@ -34,11 +43,11 @@ def panel(ax, x, lines, name):
         ax.spines[side].set_color(AXIS)
     ax.tick_params(colors=MUTED, labelsize=9)
     ax.set_ylabel(name, color=MUTED)
-    if len(lines) > 1:
-        ax.legend(loc="lower left", bbox_to_anchor=(0, 1), frameon=False, fontsize=9,
-                  labelcolor=INK, ncol=len(lines))
-    if 1 < len(lines) <= 4:
-        _label_ends(ax, x[-1], [(values[-1], label) for label, values, _, _ in lines])
+
+
+def legend(ax, columns):
+    ax.legend(loc="lower left", bbox_to_anchor=(0, 1), frameon=False, fontsize=9,
+              labelcolor=INK, ncol=columns)
 
 
 def _label_ends(ax, x, ends):
