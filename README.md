@@ -10,8 +10,9 @@ To answer that, the data is simulated. A scenario changes the data at a known
 step and in a known way, so every decision the pipeline takes can be compared
 with what really happened.
 
-Early stage: the scenario generator is there, the pipeline it's meant to test
-comes next.
+Early stage: the simulated world, serving, monitoring and retraining are there.
+Deciding whether a retrained model should replace the one in service comes
+next.
 
 ## The simulated world
 
@@ -241,6 +242,19 @@ the change was estimated to start. What came before the cut can be dropped,
 kept at a lower weight, or kept in part, the steps nearest the cut, in case the
 alarm was wrong. Each step since the change goes either to training or to the
 test set, and with labels coming back late neither gets many.
+
+```bash
+make retrain
+```
+
+runs every kind of scenario on seeds set aside for it, with both triggers
+watching. Each time one of them says to retrain, it trains a candidate for
+every window in a small grid, each knob moved on its own, plus one cut where
+the change really started, and judges each candidate against the serving model
+and the best possible one at the step it was trained. It prints how often each
+trigger retrained or held and how late, and what each window bought, and
+writes it all to `results/retrain/`. Nothing gets promoted yet: a candidate
+that looks better still has to prove it, which is the next part.
 
 ## Setup
 
