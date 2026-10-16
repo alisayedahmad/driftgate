@@ -2,7 +2,7 @@
 VENV ?= $(HOME)/.venvs/driftgate
 PY := $(VENV)/bin/python
 
-.PHONY: help env test world fingerprints train serve replay monitor retrain loop gate
+.PHONY: help env test world fingerprints train serve replay monitor retrain loop gate rollout
 
 help:  ## every target, one line each
 	@grep -E '^[a-z][a-z-]*:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-13s %s\n", $$1, $$2}'
@@ -48,3 +48,6 @@ loop: env  ## the whole pipeline on one scenario, SEED= and KIND=: watch, retrai
 
 gate: env  ## each gate's calls against the truth, on every candidate the loop makes, to results/gate/
 	$(PY) -m gate.sweep
+
+rollout: env  ## each rollout schedule's cost in accuracy, over reserved seeds, to results/rollout/
+	$(PY) -m rollout

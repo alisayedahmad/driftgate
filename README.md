@@ -351,6 +351,19 @@ counts how often each gate promoted a candidate that was worse, missed one that
 was better, or let through one that gave up a class, and how much accuracy it
 left against a gate that knows the answer. It all goes to `results/gate/`.
 
+```bash
+make rollout
+```
+
+runs every kind of scenario through the loop once per schedule: straight into
+service with no shadow, rollback or challenger; the defaults; a longer shadow;
+no rollback; no penalty in the gate, with the rollback as its net; no
+challenger. Every run is judged every few steps on fresh rows, the same ones
+for every schedule, and scored by how far the accuracy it served fell below the
+best possible, how long it took to recover from the change, and how long a
+promoted model truly worse than the one it replaced stayed in service. It all
+goes to `results/rollout/`.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
