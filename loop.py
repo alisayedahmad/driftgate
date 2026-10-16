@@ -32,14 +32,15 @@ class Loop:
     and trigger. after a hold, the trigger's or the gate's, the same model is
     watched again policy["retry"] steps later, twice as late each time after
     that, and its candidates are cut from the earliest start any of its alarms
-    gave. events lists (step, what happened).
+    gave. events lists (step, what happened), and reviews every candidate the
+    gate looked at, as dicts of step, candidate, incumbent and promote.
     """
 
     def __init__(self, registry, s, about, policy, window=Window(), trigger="informed"):
         self.registry, self.s, self.about = registry, s, about
         self.policy, self.window, self.kind = policy, window, trigger
         self.service = Service(registry, train(registry, s, WINDOW, None, about, LABELING))
-        self.events = []
+        self.events, self.reviews = [], []
         self.promoted()
 
     def promoted(self):
@@ -91,6 +92,8 @@ class Loop:
         self.events.append((step, f"{'promote' if verdict.promote else 'keep'}: gain "
                                   f"{got['gain']:+.3f} ± {got['se']:.3f} on {got['rows']} rows, "
                                   f"{verdict.reason}"))
+        self.reviews.append({"step": step, "candidate": self.candidate,
+                             "incumbent": self.service.model, "promote": verdict.promote})
         if verdict.promote:
             self.service.switch(self.registry, self.candidate)
             return self.promoted()

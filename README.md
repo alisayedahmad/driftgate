@@ -308,6 +308,19 @@ every model that served rebuilds from its record, and draws the true accuracy
 of whatever was serving against the best possible. The log and the registry
 stay in `~/.local/share/driftgate/`.
 
+```bash
+make gate
+```
+
+runs every kind of scenario through the loop on seeds set aside for it, and
+puts every candidate the loop trained before five gates: the naive one, which
+compares the candidate's test accuracy with the one the incumbent was
+registered with, and the paired one with or without the penalty and the class
+guard, each looking from 0 to 40 steps after training. Against the truth, it
+counts how often each gate promoted a candidate that was worse, missed one that
+was better, or let through one that gave up a class, and how much accuracy it
+left against a gate that knows the answer. It all goes to `results/gate/`.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
