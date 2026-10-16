@@ -316,10 +316,18 @@ its window and the gate decides whether it replaces the one in service. A
 promoted model gets monitors of its own, measured against its own record. When
 the gate keeps the old model, or the trigger holds, the old model is watched
 again a while later, twice as late each time, so that one change doesn't set
-off a retrain every few steps. It prints what happened and when, checks that
-every model that served rebuilds from its record, and draws the true accuracy
-of whatever was serving against the best possible. The log and the registry
-stay in `~/.local/share/driftgate/`.
+off a retrain every few steps.
+
+A promoted model goes before the gate again a few dozen steps later, the roles
+swapped: the model it replaced is the candidate, judged on the rows the new
+one has served since. If the old one would be promoted, it serves again. That
+catches a candidate that only looked better on too few rows. It can't catch
+one trained on wrong labels, since it judges with the same labels.
+
+`make loop` prints what happened and when, checks that every model that served
+rebuilds from its record, and draws the true accuracy of whatever was serving
+against the best possible. The log and the registry stay in
+`~/.local/share/driftgate/`.
 
 ```bash
 make gate

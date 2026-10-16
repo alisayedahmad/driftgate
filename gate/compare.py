@@ -34,21 +34,21 @@ def _mean(d):
             "se": float(d.std(ddof=1) / np.sqrt(n)) if n > 1 else np.nan}
 
 
-def compare(registry, candidate, incumbent, look):
+def compare(registry, candidate, incumbent, look, first=None):
     """the candidate against the incumbent on the rows it hasn't seen, as known at step look.
 
-    those are the rows of the steps the candidate was tested on and of every
-    step served since it was trained, up to look excluded, with the labels
-    that had come back by look. look is the step it was trained at or later;
-    the incumbent served those rows and the candidate answers them as if it
-    had been shadowing it. returns the document naming the rows, stored, and
+    those are the rows of the steps from first, by default the first the
+    candidate was tested on, up to look excluded, with the labels that had
+    come back by look. look is the step it was trained at or later; whichever
+    model served those rows, the other answers them as if it had been
+    shadowing it. returns the document naming the rows, stored, and
     paired()'s result.
     """
     record = registry.get(candidate)
     recipe = json.loads(registry.store.get(record["evaluated_on"]))["recipe"]
     if look < recipe["as_of"]:
         raise ValueError(f"the candidate was trained at {recipe['as_of']}, it can't be judged at {look}")
-    first = recipe["steps"][0]
+    first = recipe["steps"][0] if first is None else first
     x, y, doc = dataset(Scenario(**recipe["scenario"]), first, look, recipe["labeling"], look)
     registry.store.put(canonical(doc))
     new, old = (from_bytes(registry.store.get(m)).predict(x) == y for m in (candidate, incumbent))

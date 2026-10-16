@@ -25,6 +25,11 @@ class_rows = 20
 tolerance = 0.05
 class_confidence = 0.95
 
+# a promoted model is put before the gate this many steps later, roles
+# swapped: the model it replaced against it, on the rows it has served since.
+# if the old one would be promoted, it serves again.
+rollback = 30
+
 # after a candidate is kept back, or the trigger holds, the model in service
 # is watched again this many steps later, twice as late each further time
 retry = 50

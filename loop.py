@@ -5,7 +5,8 @@ from pathlib import Path
 import numpy as np
 
 from charts import MUTED, SERIES, mark, panel, panels, save
-from gate.policy import load, review
+from gate.compare import compare
+from gate.policy import decide, load, review
 from monitor.tradeoff import SIGNALS
 from retrain.train import WINDOW, check, train
 from retrain.trigger import Trigger
@@ -29,7 +30,9 @@ class Loop:
     trigger. once the trigger says to retrain, a candidate is trained at the
     step the window plans, and the gate looks at it policy["shadow"] steps later.
     a promotion serves the candidate from the next step on, with fresh monitors
-    and trigger. after a hold, the trigger's or the gate's, the same model is
+    and trigger, and policy["rollback"] steps later the model it replaced is
+    put before the gate against it, on the rows it served since: if the old
+    one would be promoted, it serves again, as after a hold. after a hold, the trigger's or the gate's, the same model is
     watched again policy["retry"] steps later, twice as late each time after
     that, and its candidates are cut from the earliest start any of its alarms
     gave. events lists (step, what happened), and reviews every candidate the
@@ -43,7 +46,9 @@ class Loop:
         self.events, self.reviews = [], []
         self.promoted()
 
-    def promoted(self):
+    def promoted(self, step=None, replaced=None):
+        self.fallback = None if replaced is None else {"model": replaced, "at": step,
+                                                       "since": self.since}
         self.since, self.retry = None, self.policy["retry"]
         self.watch()
 
@@ -58,6 +63,9 @@ class Loop:
         self.retry *= 2
 
     def update(self, step, log):
+        back = self.fallback
+        if back is not None and step == back["at"] + self.policy["rollback"] and self.undone(step):
+            return
         if self.trigger is None:
             if step < self.resume:
                 return
@@ -95,9 +103,26 @@ class Loop:
         self.reviews.append({"step": step, "candidate": self.candidate,
                              "incumbent": self.service.model, "promote": verdict.promote})
         if verdict.promote:
+            replaced = self.service.model
             self.service.switch(self.registry, self.candidate)
-            return self.promoted()
+            return self.promoted(step, replaced)
         self.rest(step)
+
+    def undone(self, step):
+        # roles swapped: the model that was replaced is the candidate now
+        back, self.fallback = self.fallback, None
+        _, got = compare(self.registry, back["model"], self.service.model, step, back["at"] + 1)
+        verdict = decide(got, self.policy)
+        since = f"{got['gain']:+.3f} ± {got['se']:.3f} on {got['rows']} rows since"
+        if not verdict.promote:
+            self.events.append((step, f"stay: the model it replaced does {since}"))
+            return False
+        self.events.append((step, f"roll back to {back['model'][:12]}: it does {since}, "
+                                  f"{verdict.reason}"))
+        self.service.switch(self.registry, back["model"])
+        self.since = back["since"]
+        self.rest(step)
+        return True
 
 
 def plot(s, steps, served, best, promoted, path):
