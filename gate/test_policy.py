@@ -9,7 +9,7 @@ from world.truth import judge
 def result(gain, se, rows=400):
     # no class with rows enough to be judged
     return {"rows": rows, "gain": gain, "se": se, "class rows": np.zeros(5, dtype=int),
-            "class gain": np.full(5, np.nan)}
+            "class gain": np.full(5, np.nan), "class se": np.full(5, np.nan)}
 
 
 def test_expected_gain_and_loss_match_a_simulation():
@@ -22,7 +22,8 @@ def test_expected_gain_and_loss_match_a_simulation():
 
 
 def test_the_shipped_policy_reads():
-    assert set(load()) == {"penalty", "wait", "min_rows", "class_rows", "tolerance", "retry"}
+    assert set(load()) == {"penalty", "wait", "min_rows", "class_rows", "tolerance",
+                           "class_confidence", "retry"}
 
 
 def test_too_few_rows_hold_whatever_they_say():

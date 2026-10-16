@@ -282,7 +282,9 @@ where to argue with it.
 
 `gate/segments.py` holds a candidate that gives up a class: one with enough
 held-out labels whose recall falls by more than a tolerance, however good the
-overall gain looks. Classes with too few rows can't hold it, and the rarest
+overall gain looks. On a few dozen rows a recall moves by that much for
+nothing, so the drop has to stand out from that noise first, the way the
+overall gain does. Classes with too few rows can't hold it, and the rarest
 seldom has enough, so a loss there goes unseen.
 
 The overall gain can't see label noise: it is measured with the labels the

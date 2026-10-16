@@ -16,11 +16,13 @@ wait = 10
 min_rows = 100
 
 # a class with at least class_rows held-out labels holds the promotion when
-# its recall falls by more than tolerance, whatever the overall gain. smaller
-# classes are too noisy to judge on so few rows and can't hold it: the rarest
-# seldom has 20, so a loss there goes unseen.
+# its recall falls by more than tolerance with class_confidence at least,
+# whatever the overall gain. on a few dozen rows a recall swings by more than
+# the tolerance for nothing, so the drop has to stand out from that first. the
+# rarest class seldom has class_rows, so a loss there goes unseen.
 class_rows = 20
 tolerance = 0.05
+class_confidence = 0.95
 
 # after a candidate is kept back, or the trigger holds, the model in service
 # is watched again this many steps later, twice as late each further time
