@@ -15,14 +15,18 @@ from world.stream import CLASSES, FEATURES
 
 
 class Service:
-    """predictions from one registered model, every one of them logged."""
+    """predictions from one registered model at a time, every one of them logged."""
 
     def __init__(self, registry, model):
+        self.log = Log()
+        self.switch(registry, model)
+
+    def switch(self, registry, model):
+        """answer with model from now on, in the same log. ValueError if it isn't registered."""
         if registry.get(model) is None:
             raise ValueError(f"model {model} isn't registered, it can't be served")
         self.model = model
         self.estimator = from_bytes(registry.store.get(model))
-        self.log = Log()
 
     def predict(self, step, x):
         """probabilities for the rows x of `step`, as (n, CLASSES + 1), logged first.

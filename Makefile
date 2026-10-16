@@ -2,7 +2,7 @@
 VENV ?= $(HOME)/.venvs/driftgate
 PY := $(VENV)/bin/python
 
-.PHONY: help env test world fingerprints train serve replay monitor retrain
+.PHONY: help env test world fingerprints train serve replay monitor retrain loop
 
 help:  ## every target, one line each
 	@grep -E '^[a-z][a-z-]*:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-13s %s\n", $$1, $$2}'
@@ -42,3 +42,6 @@ monitor: env  ## each monitor's false alarms against its delay, over reserved se
 
 retrain: env  ## what each retraining policy buys over the serving model, over reserved seeds, to results/retrain/
 	$(PY) -m retrain.sweep
+
+loop: env  ## the whole pipeline on one scenario, SEED= and KIND=: watch, retrain, gate, promote
+	$(PY) -m loop --seed $(SEED) --kind $(KIND)

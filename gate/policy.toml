@@ -21,3 +21,7 @@ min_rows = 100
 # seldom has 20, so a loss there goes unseen.
 class_rows = 20
 tolerance = 0.05
+
+# after a candidate is kept back, or the trigger holds, the model in service
+# is watched again this many steps later, twice as late each further time
+retry = 50

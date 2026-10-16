@@ -10,8 +10,9 @@ To answer that, the data is simulated. A scenario changes the data at a known
 step and in a known way, so every decision the pipeline takes can be compared
 with what really happened.
 
-Early stage: the simulated world, serving, monitoring and retraining are there.
-Deciding whether a retrained model should replace the one in service comes
+Early stage: the simulated world, serving, monitoring, retraining and the gate
+are there, and `make loop` runs them end to end on one scenario. Rolling a new
+model out step by step, and judging the whole pipeline over many runs, come
 next.
 
 ## The simulated world
@@ -289,6 +290,23 @@ gate gets, and a candidate trained on wrong labels agrees with them better.
 The class guard often can, since the rows of a relabeled class that kept their
 label show the candidate giving that class away. Holding on noise is still the
 trigger's job first.
+
+## The whole loop
+
+```bash
+make loop SEED=7 KIND=concept
+```
+
+runs the pipeline on one scenario from start to end. The service answers with
+one model, its monitors watch, the trigger decides, a candidate is trained on
+its window and the gate decides whether it replaces the one in service. A
+promoted model gets monitors of its own, measured against its own record. When
+the gate keeps the old model, or the trigger holds, the old model is watched
+again a while later, twice as late each time, so that one change doesn't set
+off a retrain every few steps. It prints what happened and when, checks that
+every model that served rebuilds from its record, and draws the true accuracy
+of whatever was serving against the best possible. The log and the registry
+stay in `~/.local/share/driftgate/`.
 
 ## Setup
 

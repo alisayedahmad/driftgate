@@ -22,7 +22,7 @@ def test_expected_gain_and_loss_match_a_simulation():
 
 
 def test_the_shipped_policy_reads():
-    assert set(load()) == {"penalty", "wait", "min_rows", "class_rows", "tolerance"}
+    assert set(load()) == {"penalty", "wait", "min_rows", "class_rows", "tolerance", "retry"}
 
 
 def test_too_few_rows_hold_whatever_they_say():
