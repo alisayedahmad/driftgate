@@ -56,6 +56,8 @@ def test_a_promotion_that_turns_out_worse_is_rolled_back():
     assert loop.service.model == good
     assert [step for step, what in loop.events if what.startswith("roll back")] == [
         at + load()["rollback"]]
+    # watched again at once, not held off like after a candidate kept back
+    assert loop.trigger is not None
 
 
 def test_a_challenger_is_tried_every_so_often_while_nothing_else_is_pending():

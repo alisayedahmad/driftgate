@@ -34,11 +34,12 @@ class Loop:
     way. a promotion serves the candidate from the next step on, with fresh
     monitors and trigger, and policy["rollback"] steps later the model it
     replaced goes before the gate against it, on the rows it served since: if
-    the old one would be promoted, it serves again. after a hold, the
-    trigger's, the gate's or a rollback, the same model is watched again
-    policy["retry"] steps later, twice as late each time after that, and its
-    candidates are cut from the earliest start any of its alarms gave; a
-    challenger kept back changes nothing. events lists (step, what happened),
+    the old one would be promoted, it serves again and is watched at once.
+    after a hold, the trigger's or the gate's, the same model is watched again
+    policy["retry"] steps later, twice as late each time after that. a model's
+    candidates are cut from the earliest start any of its alarms gave, or the
+    alarms of a model rolled back from it; a challenger kept back changes
+    nothing. events lists (step, what happened),
     and reviews every candidate the gate looked at, as dicts of step,
     candidate, incumbent, challenger and promote.
     """
@@ -135,8 +136,10 @@ class Loop:
         self.events.append((step, f"roll back to {back['model'][:12]}: it does {since}, "
                                   f"{verdict.reason}"))
         self.service.switch(self.registry, back["model"])
-        self.since = back["since"]
-        self.rest(step)
+        # not a hold: whatever the new model's alarms found, the old one is in it too
+        found = [t for t in (back["since"], self.since) if t is not None]
+        self.since = min(found) if found else None
+        self.watch(step)
         return True
 
 
