@@ -272,6 +272,10 @@ The environment is created in `~/.venvs/driftgate`, outside the repository. On
 WSL2 the repository can live on a Windows drive, but a virtualenv there is
 slow, it's lots of small files. Set `VENV=...` to put it somewhere else.
 
+Every push runs `make test` on a fresh Ubuntu machine, see
+`.github/workflows/ci.yml`. That includes the world fingerprints, so a change
+that draws different data on another CPU shows up there.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
