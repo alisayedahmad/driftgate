@@ -13,7 +13,7 @@ from retrain.train import WINDOW, from_bytes, train
 from retrain.trigger import POLICIES, Trigger
 from retrain.window import Window
 from serving.app import Service, replay
-from spine.provenance import code, versions
+from spine.provenance import code, stamp, versions
 from spine.registry import Registry
 from spine.store import Store
 from world.labels import LABELING
@@ -208,7 +208,8 @@ def main():
           ["candidates", "gain", "gain q10", "gain q90", "better", "short", "worst", "rows"],
           args.out / "windows.csv")
     plot(table, args.out / "windows.png")
-    print(f"wrote decisions.csv, windows.csv and windows.png to {args.out}")
+    stamp(args.out, args, about)
+    print(f"wrote decisions.csv, windows.csv, windows.png and about.json to {args.out}")
 
 
 if __name__ == "__main__":

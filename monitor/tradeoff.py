@@ -11,7 +11,7 @@ from monitor.performance import LabelShares, Performance
 from monitor.prediction_drift import PredictionDrift
 from retrain.train import WINDOW, train
 from serving.app import Service, replay
-from spine.provenance import code, versions
+from spine.provenance import code, stamp, versions
 from spine.registry import Registry
 from spine.store import Store
 from world.labels import LABELING
@@ -166,7 +166,8 @@ def main():
     args.out.mkdir(parents=True, exist_ok=True)
     write(table, THRESHOLDS, args.out / "tradeoff.csv")
     plot(table, THRESHOLDS, args.budget, args.out / "tradeoff.png")
-    print(f"wrote {args.out / 'tradeoff.csv'} and {args.out / 'tradeoff.png'}")
+    stamp(args.out, args, about)
+    print(f"wrote tradeoff.csv, tradeoff.png and about.json to {args.out}")
 
 
 if __name__ == "__main__":

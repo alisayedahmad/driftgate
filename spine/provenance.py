@@ -104,3 +104,13 @@ def code(root=ROOT):
 def versions():
     return {"python": platform.python_version(),
             "numpy": version("numpy"), "scikit-learn": version("scikit-learn")}
+
+
+def stamp(out, args, about):
+    """write out/about.json, saying what made the files next to it.
+
+    args is the argparse namespace of the run, out itself left aside, and
+    about the {"code": ..., "versions": ...} read when it started.
+    """
+    doc = {"args": {name: value for name, value in vars(args).items() if name != "out"}, **about}
+    (Path(out) / "about.json").write_text(json.dumps(doc, indent=2, sort_keys=True) + "\n")

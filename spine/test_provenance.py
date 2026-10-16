@@ -1,9 +1,11 @@
+import argparse
 import json
 import subprocess
 
 import numpy as np
 
-from spine.provenance import canonical, code, data_hash, dataset, row_weights, verify
+from spine.provenance import (canonical, code, data_hash, dataset, row_weights, stamp, verify,
+                              versions)
 from world.labels import LABELING
 from world.scenarios import Scenario
 
@@ -53,6 +55,12 @@ def test_only_labels_back_by_as_of_are_kept():
     late = dataset(s, 0, 50, LABELING, 10_000)[2]["rows"]
     every = dataset(s, 0, 50, {**LABELING, "rate": 1.0}, 10_000)[2]["rows"]
     assert early < late < every == 50 * 100
+
+
+def test_a_stamp_says_what_made_a_result(tmp_path):
+    about = {"code": {"commit": "0" * 40, "dirty": False, "changes": None}, "versions": versions()}
+    stamp(tmp_path, argparse.Namespace(seeds=3, out=tmp_path), about)
+    assert json.loads((tmp_path / "about.json").read_text()) == {"args": {"seeds": 3}, **about}
 
 
 def git(root, *args):

@@ -140,6 +140,10 @@ refit with the stored config and has to come out with the same bytes, and the
 metrics have to come out the same. Each run starts a fresh registry in
 `~/.local/share/driftgate/`.
 
+The results kept in `results/` say where they come from the same way: each
+directory has an `about.json` with the arguments of the run, the commit and
+any uncommitted changes it ran on, and the library versions.
+
 ## Serving
 
 `serving/log.py` keeps every prediction that was served: the step, the inputs,
