@@ -30,6 +30,10 @@ class_confidence = 0.95
 # if the old one would be promoted, it serves again.
 rollback = 30
 
+# while nothing else is pending, a challenger is trained on the last steps this
+# often and judged like any candidate; past the end of a run, never
+challenge = 100
+
 # after a candidate is kept back, or the trigger holds, the model in service
 # is watched again this many steps later, twice as late each further time
 retry = 50

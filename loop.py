@@ -8,7 +8,7 @@ from charts import MUTED, SERIES, mark, panel, panels, save
 from gate.compare import compare
 from gate.policy import decide, load, review
 from monitor.tradeoff import SIGNALS
-from retrain.train import WINDOW, check, train
+from retrain.train import TEST, WINDOW, check, train
 from retrain.trigger import Trigger
 from retrain.window import Window
 from serving.app import Service, replay
@@ -28,15 +28,19 @@ class Loop:
     it serves a model trained at WINDOW, and update is a replay watcher for the
     steps after that. each step the serving model's monitors update, then its
     trigger. once the trigger says to retrain, a candidate is trained at the
-    step the window plans, and the gate looks at it policy["shadow"] steps later.
-    a promotion serves the candidate from the next step on, with fresh monitors
-    and trigger, and policy["rollback"] steps later the model it replaced is
-    put before the gate against it, on the rows it served since: if the old
-    one would be promoted, it serves again, as after a hold. after a hold, the trigger's or the gate's, the same model is
-    watched again policy["retry"] steps later, twice as late each time after
-    that, and its candidates are cut from the earliest start any of its alarms
-    gave. events lists (step, what happened), and reviews every candidate the
-    gate looked at, as dicts of step, candidate, incumbent and promote.
+    step the window plans, and the gate looks at it policy["shadow"] steps
+    later. while nothing is pending, a challenger is also trained every
+    policy["challenge"] steps on the WINDOW steps before, and judged the same
+    way. a promotion serves the candidate from the next step on, with fresh
+    monitors and trigger, and policy["rollback"] steps later the model it
+    replaced goes before the gate against it, on the rows it served since: if
+    the old one would be promoted, it serves again. after a hold, the
+    trigger's, the gate's or a rollback, the same model is watched again
+    policy["retry"] steps later, twice as late each time after that, and its
+    candidates are cut from the earliest start any of its alarms gave; a
+    challenger kept back changes nothing. events lists (step, what happened),
+    and reviews every candidate the gate looked at, as dicts of step,
+    candidate, incumbent, challenger and promote.
     """
 
     def __init__(self, registry, s, about, policy, window=Window(), trigger="informed"):
@@ -44,18 +48,19 @@ class Loop:
         self.policy, self.window, self.kind = policy, window, trigger
         self.service = Service(registry, train(registry, s, WINDOW, None, about, LABELING))
         self.events, self.reviews = [], []
-        self.promoted()
+        self.promoted(WINDOW)
 
-    def promoted(self, step=None, replaced=None):
+    def promoted(self, step, replaced=None):
         self.fallback = None if replaced is None else {"model": replaced, "at": step,
                                                        "since": self.since}
         self.since, self.retry = None, self.policy["retry"]
-        self.watch()
+        self.watch(step)
 
-    def watch(self):
+    def watch(self, step):
         self.monitors = {name: m(self.registry, self.service.model) for name, m in SIGNALS.items()}
         self.trigger = Trigger(self.monitors, self.kind)
         self.plan = self.candidate = None
+        self.challenger, self.challenge = False, step + self.policy["challenge"]
 
     def rest(self, step):
         # re-armed at once, the monitors find the same change again within steps
@@ -69,17 +74,22 @@ class Loop:
         if self.trigger is None:
             if step < self.resume:
                 return
-            self.watch()
+            self.watch(step)
         for m in self.monitors.values():
             m.update(step, log)
         self.trigger.update(step, log)
         if self.plan is None and self.trigger.decision is not None:
             self.decided(step, self.trigger.decision)
+        if self.plan is None and step >= self.challenge:
+            # the default window, the last WINDOW steps
+            self.plan, self.challenger = (step, None), True
         if self.plan is not None and step == self.plan[0]:
             self.candidate = train(self.registry, self.s, step, self.service.model, self.about,
                                    LABELING, self.plan[1])
-            first, stop = self.plan[1]["fit"]
-            self.events.append((step, f"trained {self.candidate[:12]} on steps {first}-{stop - 1}"))
+            first, stop = self.plan[1]["fit"] if self.plan[1] else (step - WINDOW, step - TEST)
+            who = "challenger" if self.challenger else "candidate"
+            self.events.append((step, f"trained {who} {self.candidate[:12]} on steps "
+                                      f"{first}-{stop - 1}"))
         if self.candidate is not None and step == self.plan[0] + self.policy["shadow"]:
             self.judged(step)
 
@@ -101,11 +111,16 @@ class Loop:
                                   f"{got['gain']:+.3f} ± {got['se']:.3f} on {got['rows']} rows, "
                                   f"{verdict.reason}"))
         self.reviews.append({"step": step, "candidate": self.candidate,
-                             "incumbent": self.service.model, "promote": verdict.promote})
+                             "incumbent": self.service.model, "challenger": self.challenger,
+                             "promote": verdict.promote})
         if verdict.promote:
             replaced = self.service.model
             self.service.switch(self.registry, self.candidate)
             return self.promoted(step, replaced)
+        if self.challenger:
+            self.plan = self.candidate = None
+            self.challenger, self.challenge = False, step + self.policy["challenge"]
+            return
         self.rest(step)
 
     def undone(self, step):

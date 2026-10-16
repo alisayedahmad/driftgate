@@ -324,6 +324,12 @@ one has served since. If the old one would be promoted, it serves again. That
 catches a candidate that only looked better on too few rows. It can't catch
 one trained on wrong labels, since it judges with the same labels.
 
+While nothing else is pending, a challenger is trained on the latest steps
+every so often and judged like any candidate. The monitors only ask for a new
+model when the one in service does worse than it was tested at, so a model
+promoted on the few steps after a change could stay below what more data would
+give, with nothing ever asking for better.
+
 `make loop` prints what happened and when, checks that every model that served
 rebuilds from its record, and draws the true accuracy of whatever was serving
 against the best possible. The log and the registry stay in

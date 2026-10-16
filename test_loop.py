@@ -56,3 +56,12 @@ def test_a_promotion_that_turns_out_worse_is_rolled_back():
     assert loop.service.model == good
     assert [step for step, what in loop.events if what.startswith("roll back")] == [
         at + load()["rollback"]]
+
+
+def test_a_challenger_is_tried_every_so_often_while_nothing_else_is_pending():
+    # the next one is due a while after the last was judged
+    every = load()["challenge"] + load()["shadow"]
+    loop = looped(Scenario(3), WINDOW + 2 * every + 1)
+    assert [r["step"] for r in loop.reviews if r["challenger"]] == [WINDOW + every,
+                                                                    WINDOW + 2 * every]
+    assert all(r["challenger"] for r in loop.reviews)
