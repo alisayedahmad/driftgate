@@ -7,7 +7,9 @@ from world.truth import judge
 
 
 def result(gain, se, rows=400):
-    return {"rows": rows, "gain": gain, "se": se}
+    # no class with rows enough to be judged
+    return {"rows": rows, "gain": gain, "se": se, "class rows": np.zeros(5, dtype=int),
+            "class gain": np.full(5, np.nan)}
 
 
 def test_expected_gain_and_loss_match_a_simulation():
@@ -20,7 +22,7 @@ def test_expected_gain_and_loss_match_a_simulation():
 
 
 def test_the_shipped_policy_reads():
-    assert set(load()) == {"penalty", "wait", "min_rows"}
+    assert set(load()) == {"penalty", "wait", "min_rows", "class_rows", "tolerance"}
 
 
 def test_too_few_rows_hold_whatever_they_say():
@@ -46,10 +48,11 @@ def test_a_concept_break_candidate_is_promoted(concept):
     assert verdict.promote and got["gain"] > 0
 
 
-def test_the_gate_cant_see_label_noise(noise):
+def test_the_overall_gain_cant_see_label_noise(noise):
     # the held-out labels are noisy too, the candidate fits them better
     s, registry, serving, candidate, step = noise
-    _, _, got, verdict = review(registry, candidate, serving, load())
+    _, _, got, _ = review(registry, candidate, serving, load())
     true = (judge(s, from_bytes(registry.store.get(candidate)).predict, step)["accuracy"]
             - judge(s, from_bytes(registry.store.get(serving)).predict, step)["accuracy"])
-    assert verdict.promote and got["gain"] > 0 > true
+    assert got["gain"] > 0 > true
+    assert decide(got, {**load(), "class_rows": 10_000}).promote

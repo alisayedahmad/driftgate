@@ -4,6 +4,7 @@ from math import erf, exp, pi, sqrt
 from pathlib import Path
 
 from gate.compare import compare
+from gate.segments import given_up
 
 POLICY = Path(__file__).with_name("policy.toml")
 
@@ -34,13 +35,18 @@ def expected(gain, se):
 def decide(result, policy):
     """promote or hold, from compare()'s result and a policy as load() reads it.
 
-    holds below policy["min_rows"] labeled rows. otherwise promotes when the
-    expected gain beats penalty times the expected loss, both taken over what
-    the true gain could be given the rows: a likely small loss can outweigh a
-    likely small gain, and with little evidence both are wide.
+    holds below policy["min_rows"] labeled rows, and when the candidate gives
+    up a class, see gate.segments. otherwise promotes when the expected gain
+    beats penalty times the expected loss, both taken over what the true gain
+    could be given the rows: a likely small loss can outweigh a likely small
+    gain, and with little evidence both are wide.
     """
     if result["rows"] < policy["min_rows"]:
         return Verdict(False, f"{result['rows']} labeled rows, {policy['min_rows']} needed")
+    lost = given_up(result, policy)
+    if lost:
+        c, change, rows = lost[0]
+        return Verdict(False, f"class {c} loses {-change:.3f} of recall on {rows} rows")
     up, down = expected(result["gain"], result["se"])
     weighed = f"expected gain {up:.4f} against {policy['penalty']:g} x {down:.4f} expected loss"
     return Verdict(up > policy["penalty"] * down, weighed)

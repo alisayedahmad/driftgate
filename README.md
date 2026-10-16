@@ -279,9 +279,16 @@ it turns out better or worse, so without that penalty the gate would promote
 on any gain above zero. How sure to be is a business choice, and the file is
 where to argue with it.
 
-The gate can't do anything about label noise: it judges with the labels it
-gets, and a candidate trained on wrong labels agrees with them better. Holding
-on noise is the trigger's job.
+`gate/segments.py` holds a candidate that gives up a class: one with enough
+held-out labels whose recall falls by more than a tolerance, however good the
+overall gain looks. Classes with too few rows can't hold it, and the rarest
+seldom has enough, so a loss there goes unseen.
+
+The overall gain can't see label noise: it is measured with the labels the
+gate gets, and a candidate trained on wrong labels agrees with them better.
+The class guard often can, since the rows of a relabeled class that kept their
+label show the candidate giving that class away. Holding on noise is still the
+trigger's job first.
 
 ## Setup
 
