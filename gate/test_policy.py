@@ -22,7 +22,7 @@ def test_expected_gain_and_loss_match_a_simulation():
 
 
 def test_the_shipped_policy_reads():
-    assert set(load()) == {"penalty", "wait", "min_rows", "class_rows", "tolerance",
+    assert set(load()) == {"penalty", "shadow", "min_rows", "class_rows", "tolerance",
                            "class_confidence", "retry"}
 
 
@@ -45,7 +45,7 @@ def test_a_penalty_wants_more_evidence_the_noisier_the_gain():
 def test_a_concept_break_candidate_is_promoted(concept):
     _, registry, serving, candidate, step = concept
     look, _, got, verdict = review(registry, candidate, serving, load())
-    assert look == step + load()["wait"]
+    assert look == step + load()["shadow"]
     assert verdict.promote and got["gain"] > 0
 
 

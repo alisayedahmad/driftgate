@@ -35,17 +35,21 @@ def _mean(d):
 
 
 def compare(registry, candidate, incumbent, look):
-    """the candidate against the incumbent on the candidate's held-out rows, as known at step look.
+    """the candidate against the incumbent on the rows it hasn't seen, as known at step look.
 
-    those are the rows of the steps the candidate was tested on, with the
-    labels that had come back by look, which is the step it was trained at or
-    later. returns the document naming those rows, stored, and paired()'s result.
+    those are the rows of the steps the candidate was tested on and of every
+    step served since it was trained, up to look excluded, with the labels
+    that had come back by look. look is the step it was trained at or later;
+    the incumbent served those rows and the candidate answers them as if it
+    had been shadowing it. returns the document naming the rows, stored, and
+    paired()'s result.
     """
     record = registry.get(candidate)
     recipe = json.loads(registry.store.get(record["evaluated_on"]))["recipe"]
     if look < recipe["as_of"]:
         raise ValueError(f"the candidate was trained at {recipe['as_of']}, it can't be judged at {look}")
-    x, y, doc = dataset(Scenario(**recipe["scenario"]), *recipe["steps"], recipe["labeling"], look)
+    first = recipe["steps"][0]
+    x, y, doc = dataset(Scenario(**recipe["scenario"]), first, look, recipe["labeling"], look)
     registry.store.put(canonical(doc))
     new, old = (from_bytes(registry.store.get(m)).predict(x) == y for m in (candidate, incumbent))
     return doc, paired(new, old, y)

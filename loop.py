@@ -27,7 +27,7 @@ class Loop:
     it serves a model trained at WINDOW, and update is a replay watcher for the
     steps after that. each step the serving model's monitors update, then its
     trigger. once the trigger says to retrain, a candidate is trained at the
-    step the window plans, and the gate looks at it policy["wait"] steps later.
+    step the window plans, and the gate looks at it policy["shadow"] steps later.
     a promotion serves the candidate from the next step on, with fresh monitors
     and trigger. after a hold, the trigger's or the gate's, the same model is
     watched again policy["retry"] steps later, twice as late each time after
@@ -72,7 +72,7 @@ class Loop:
                                    LABELING, self.plan[1])
             first, stop = self.plan[1]["fit"]
             self.events.append((step, f"trained {self.candidate[:12]} on steps {first}-{stop - 1}"))
-        if self.candidate is not None and step == self.plan[0] + self.policy["wait"]:
+        if self.candidate is not None and step == self.plan[0] + self.policy["shadow"]:
             self.judged(step)
 
     def decided(self, step, d):

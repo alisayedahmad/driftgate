@@ -8,9 +8,10 @@
 # the same size mostly doesn't, hence more than 1.
 penalty = 4.0
 
-# steps after the candidate is trained before the gate looks, once. labels
-# keep coming back meanwhile, and a better candidate waits that long to serve.
-wait = 10
+# steps the candidate shadows the model in service before the gate looks,
+# once. it is judged on the rows served meanwhile as well as its held-out ones,
+# with the labels back by then, and a better candidate waits that long to serve.
+shadow = 10
 
 # with fewer labeled rows than this the gate holds whatever they say
 min_rows = 100

@@ -264,15 +264,26 @@ that looks better still has to prove it, which is the next part.
 ## Promotion
 
 `gate/compare.py` puts a candidate against the model in service on the same
-rows: the steps held out from its training, with the labels that have come
-back by the time the gate looks. Both models answer every row, so the gain is
-measured row by row and only the rows where they disagree make it uncertain.
-That error is far smaller than the one between two accuracies taken on
-different rows. The rows are a dataset like the ones models train on, kept in
-the store, so a comparison can be rebuilt.
+rows: the steps held out from its training and every step served since, with
+the labels that have come back by the time the gate looks. Both models answer
+every row, so the gain is measured row by row and only the rows where they
+disagree make it uncertain. That error is far smaller than the one between two
+accuracies taken on different rows. The rows are a dataset like the ones
+models train on, kept in the store, so a comparison can be rebuilt.
 
-`gate/policy.py` looks once, a few steps after the candidate was trained, and
-decides with what `gate/policy.toml` says mistakes cost. Given the rows, the
+The rows served since training are the candidate's shadow: it answers the
+traffic the model in service answered, and nothing it says reaches anyone.
+Serving doesn't change the world in this simulation, so its answers on the
+logged rows are exactly the ones it would have given at the time, and
+shadowing is replaying the log. For the same reason there is no canary.
+Serving a slice of traffic with the candidate would show nothing the shadow
+doesn't, only put that slice at risk. A canary earns its place where what is
+served changes what comes back, a lender only learning how the loans it
+granted turn out, and that kind of labeling isn't simulated.
+
+`gate/policy.py` looks once, after the candidate has shadowed the model in
+service for a few steps, and decides with what `gate/policy.toml` says
+mistakes cost. Given the rows, the
 true gain could be anywhere around the measured one; the gate weighs what
 promoting is expected to win against what it is expected to lose, a loss
 counting `penalty` times a gain. A promoted model serves just as long whether
@@ -318,7 +329,7 @@ runs every kind of scenario through the loop on seeds set aside for it, and
 puts every candidate the loop trained before five gates: the naive one, which
 compares the candidate's test accuracy with the one the incumbent was
 registered with, and the paired one with or without the penalty and the class
-guard, each looking from 0 to 40 steps after training. Against the truth, it
+guard, each after a shadow of 0 to 100 steps. Against the truth, it
 counts how often each gate promoted a candidate that was worse, missed one that
 was better, or let through one that gave up a class, and how much accuracy it
 left against a gate that knows the answer. It all goes to `results/gate/`.

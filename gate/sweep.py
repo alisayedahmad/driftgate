@@ -21,7 +21,7 @@ from world.truth import judge
 
 # kept apart from the thresholds' seeds, 10000 on, and the windows', 20000 on
 FIRST = 30_000
-WAITS = (0, 10, 20, 40)
+SHADOWS = (0, 10, 50, 100)
 NEVER = 10 ** 9
 
 
@@ -40,10 +40,10 @@ def gates(policy):
 
 
 def run(job):
-    """one scenario through the loop, and every candidate it made judged by every gate and wait.
+    """one scenario through the loop, and every candidate it made judged by every gate and shadow.
 
     job is (kind, seed, about). returns (kind, seed, rows): one dict per
-    candidate and wait, with what each gate decided, and the truth at the step
+    candidate and shadow, with what each gate decided, and the truth at the step
     the gate looks: gain, the true accuracy of the candidate minus the
     incumbent's, and worst, the lowest change in recall of any class.
     """
@@ -56,11 +56,11 @@ def run(job):
     out = []
     for r in loop.reviews:
         new, old = r["candidate"], r["incumbent"]
-        for wait in WAITS:
-            look = registry.get(new)["step"] + wait
+        for shadow in SHADOWS:
+            look = registry.get(new)["step"] + shadow
             _, got = compare(registry, new, old, look)
             a, b = (judge(s, from_bytes(registry.store.get(m)).predict, look) for m in (new, old))
-            out.append({"wait": wait, "gain": a["accuracy"] - b["accuracy"],
+            out.append({"shadow": shadow, "gain": a["accuracy"] - b["accuracy"],
                         "worst": float(np.nanmin(a["recall"] - b["recall"])),
                         **{name: bool(gate(registry, new, old, got))
                            for name, gate in gates(policy).items()}})
@@ -68,7 +68,7 @@ def run(job):
 
 
 def table(runs, tolerance):
-    """per kind, gate and wait, how its calls compare with the truth.
+    """per kind, gate and shadow, how its calls compare with the truth.
 
     promoted is the share of candidates promoted. false is the share of the
     truly worse ones promoted, missed the share of the truly better ones not
@@ -82,12 +82,12 @@ def table(runs, tolerance):
     for kind in KINDS:
         rows = [r for k, _, rs in runs if k == kind for r in rs]
         for name in names:
-            for wait in WAITS:
-                mine = [r for r in rows if r["wait"] == wait]
+            for shadow in SHADOWS:
+                mine = [r for r in rows if r["shadow"] == shadow]
                 gain = np.array([r["gain"] for r in mine])
                 went = np.array([r[name] for r in mine], dtype=bool)
                 lost = np.array([r["worst"] < -tolerance for r in mine], dtype=bool)
-                out[kind, name, wait] = {
+                out[kind, name, shadow] = {
                     "candidates": len(mine), "promoted": _mean(went),
                     "false": _mean(went[gain < 0]), "missed": _mean(~went[gain > 0]),
                     "gave": _mean(went[lost]),
@@ -102,10 +102,10 @@ def _mean(a):
 
 def write(out, path):
     columns = ["candidates", "promoted", "false", "missed", "gave", "left"]
-    lines = ["kind,gate,wait," + ",".join(columns)]
-    for (kind, name, wait), row in out.items():
+    lines = ["kind,gate,shadow," + ",".join(columns)]
+    for (kind, name, shadow), row in out.items():
         cells = [str(row[c]) if isinstance(row[c], int) else f"{row[c]:.4f}" for c in columns]
-        lines.append(f"{kind},{name},{wait}," + ",".join(cells))
+        lines.append(f"{kind},{name},{shadow}," + ",".join(cells))
     path.write_text("\n".join(lines) + "\n")
 
 
@@ -115,11 +115,11 @@ def plot(out, path):
     fig, axes = panels([1] * len(kinds), height=10)
     x = np.arange(len(names))
     for ax, kind in zip(axes, kinds):
-        for i, (wait, color) in enumerate(zip(WAITS, SERIES)):
-            left = [1000 * out[kind, name, wait]["left"] for name in names]
-            ax.bar(x + (i - 1.5) * 0.2, left, width=0.2, color=color, label=f"wait {wait}")
+        for i, (shadow, color) in enumerate(zip(SHADOWS, SERIES)):
+            left = [1000 * out[kind, name, shadow]["left"] for name in names]
+            ax.bar(x + (i - 1.5) * 0.2, left, width=0.2, color=color, label=f"shadow {shadow}")
         style(ax, kind)
-    legend(axes[0], len(WAITS))
+    legend(axes[0], len(SHADOWS))
     axes[-1].set_xticks(x, names)
     axes[-1].set_xlabel("gate", color=MUTED)
     save(fig, "accuracy left against a gate that knows the truth, in thousandths, "
@@ -127,21 +127,21 @@ def plot(out, path):
 
 
 def report(out):
-    print(f"\nat wait {load()['wait']}: share promoted, of the truly worse promoted, of the truly "
+    print(f"\nat shadow {load()['shadow']}: share promoted, of the truly worse promoted, of the truly "
           f"better missed, of those giving up a class promoted, accuracy left x1000")
     print(f"{'kind':10s} {'gate':8s} {'n':>4s} {'promoted':>9s} {'false':>6s} {'missed':>7s} "
           f"{'gave':>6s} {'left':>6s}")
-    for (kind, name, wait), r in out.items():
-        if wait != load()["wait"]:
+    for (kind, name, shadow), r in out.items():
+        if shadow != load()["shadow"]:
             continue
         cells = [f"{r[c]:.0%}" if not np.isnan(r[c]) else "-" for c in ("promoted", "false",
                                                                         "missed", "gave")]
         print(f"{kind:10s} {name:8s} {r['candidates']:4d} {cells[0]:>9s} {cells[1]:>6s} "
               f"{cells[2]:>7s} {cells[3]:>6s} {1000 * r['left']:6.1f}")
-    print("\naccuracy left x1000 by wait, gate both")
-    print(f"{'kind':10s}" + "".join(f"{f'wait {w}':>9s}" for w in WAITS))
+    print("\naccuracy left x1000 by shadow, gate both")
+    print(f"{'kind':10s}" + "".join(f"{f'shadow {w}':>9s}" for w in SHADOWS))
     for kind in KINDS:
-        print(f"{kind:10s}" + "".join(f"{1000 * out[kind, 'both', w]['left']:9.1f}" for w in WAITS))
+        print(f"{kind:10s}" + "".join(f"{1000 * out[kind, 'both', w]['left']:9.1f}" for w in SHADOWS))
 
 
 def main():
@@ -157,7 +157,7 @@ def main():
     out = table(runs, load()["tolerance"])
 
     print(f"{args.seeds} seeds per kind from {FIRST}, "
-          f"{sum(len(rs) for _, _, rs in runs) // len(WAITS)} candidates from the loop")
+          f"{sum(len(rs) for _, _, rs in runs) // len(SHADOWS)} candidates from the loop")
     report(out)
     args.out.mkdir(parents=True, exist_ok=True)
     write(out, args.out / "gates.csv")

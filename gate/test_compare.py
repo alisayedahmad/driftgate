@@ -5,6 +5,7 @@ import pytest
 
 from gate.compare import compare, paired
 from retrain.train import from_bytes
+from retrain.window import Window
 from spine.provenance import canonical
 from world.truth import judge
 
@@ -39,9 +40,12 @@ def test_the_paired_gain_finds_the_true_one(concept):
     assert hashlib.sha256(canonical(doc)).hexdigest() in registry.store
 
 
-def test_waiting_brings_more_rows_and_the_past_is_refused(concept):
+def test_shadowing_adds_the_rows_served_since_training(concept):
     _, registry, serving, candidate, step = concept
-    assert compare(registry, candidate, serving, step)[1]["rows"] < compare(
-        registry, candidate, serving, step + 10)[1]["rows"]
+    (held, at_once), (doc, later) = (compare(registry, candidate, serving, look)
+                                     for look in (step, step + 10))
+    assert held["recipe"]["steps"] == [step - Window().gate, step]
+    assert doc["recipe"]["steps"] == [step - Window().gate, step + 10]
+    assert at_once["rows"] < later["rows"]
     with pytest.raises(ValueError):
         compare(registry, candidate, serving, step - 1)

@@ -53,11 +53,11 @@ def decide(result, policy):
 
 
 def review(registry, candidate, incumbent, policy):
-    """the gate on a candidate, policy["wait"] steps after the step it was trained at.
+    """the gate on a candidate after it shadowed the incumbent policy["shadow"] steps.
 
     returns the step it looked at, the document naming the rows it compared on,
     compare()'s result and the Verdict. call it at that step or later.
     """
-    look = registry.get(candidate)["step"] + policy["wait"]
+    look = registry.get(candidate)["step"] + policy["shadow"]
     doc, result = compare(registry, candidate, incumbent, look)
     return look, doc, result, decide(result, policy)
