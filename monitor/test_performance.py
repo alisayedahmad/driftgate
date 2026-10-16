@@ -1,18 +1,20 @@
 import json
 
 import numpy as np
+import pytest
 
 from monitor.cusum import first_alarm
 from monitor.performance import LabelShares, Performance
 from retrain.test_train import ABOUT
 from retrain.train import WINDOW, train
 from serving.app import Service, replay
+from serving.log import Log
 from spine.provenance import rows
 from spine.registry import Registry
 from spine.store import Store
 from world.labels import LABELING
 from world.scenarios import Scenario
-from world.stream import CLASSES
+from world.stream import CLASSES, FEATURES
 
 H = 10.0
 AT = WINDOW + 40
@@ -61,3 +63,23 @@ def test_the_first_label_of_a_new_class_is_an_alarm():
     assert shares.path[shares.steps.index(step)] == np.inf
     # its stream had no value until then
     assert shares.starts[shares.steps.index(step)] == step
+
+
+class Tested:
+    # a registry that only knows the accuracy every model was tested at
+    def get(self, model):
+        return {"metrics": {"accuracy": 0.8}}
+
+
+def test_only_labels_of_rows_the_model_served_count():
+    log = Log()
+    x, zeros = np.zeros((10, FEATURES)), np.zeros(10, dtype=int)
+    log.served(0, x, "a" * 64, np.eye(CLASSES + 1)[zeros + 1])
+    log.served(1, x, "b" * 64, np.eye(CLASSES + 1)[zeros])
+    log.arrived(2, 0, range(10), zeros)
+    log.arrived(2, 1, range(10), zeros)
+    performance = Performance(Tested(), "b" * 64)
+    performance.update(2, log)
+    # b got its 10 rows right, the 10 that a got wrong aren't its own
+    z = -0.2 / np.sqrt(0.2 * 0.8 / 10)
+    assert performance.cusum.down[0] == pytest.approx(-z - 0.5)

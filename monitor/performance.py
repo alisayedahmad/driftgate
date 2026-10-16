@@ -8,24 +8,27 @@ from world.stream import CLASSES
 
 
 class Performance(Monitor):
-    """a CUSUM on the error rate of the labels that land at each step.
+    """a CUSUM on the error rate of the labels that land at each step, for the rows the model served.
 
     the reference is one minus the accuracy the model was tested at, from its
-    registry record. a step where no label lands leaves the CUSUM as it was.
-    update is a replay watcher, Monitor says what it keeps. its steps are the
-    ones labels land at, which come after the rows they belong to were served.
+    registry record. labels of rows another model served are left out, and a
+    step where none of its own land leaves the CUSUM as it was. update is a
+    replay watcher, Monitor says what it keeps. its steps are the ones labels
+    land at, which come after the rows they belong to were served.
     """
 
     def __init__(self, registry, model, k=0.5):
+        self.model = model
         self.error = 1 - registry.get(model)["metrics"]["accuracy"]
         super().__init__(1, k)
 
     def update(self, step, log):
         landed = log.landed(step)
-        n = len(landed["label"])
+        mine = landed["model"] == (log.models.index(self.model) if self.model in log.models else -1)
+        n = int(mine.sum())
         z = np.nan
         if n:
-            wrong = (landed["proba"].argmax(axis=1) != landed["label"]).mean()
+            wrong = (landed["proba"][mine].argmax(axis=1) != landed["label"][mine]).mean()
             z = (wrong - self.error) / np.sqrt(self.error * (1 - self.error) / n)
         self.record(step, [z])
 

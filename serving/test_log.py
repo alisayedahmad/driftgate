@@ -92,5 +92,6 @@ def test_landed_gives_what_arrived_at_that_step_only():
     got = log.landed(3)
     assert got["step"].tolist() == [0, 0, 1]
     assert got["label"].tolist() == [1, 3, 0]
+    assert got["model"].tolist() == [0, 0, 0]
     assert np.array_equal(got["x"], np.stack([rows(0)[0][2], rows(0)[0][7], rows(1)[0][4]]))
     assert log.landed(2)["x"].shape == (0, FEATURES)

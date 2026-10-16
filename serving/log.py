@@ -63,12 +63,13 @@ class Log:
         return {name: self.columns[name][at].copy() for name in ("x", "proba", "model")}
 
     def landed(self, step):
-        """the labels that arrived at `step` with their rows: step served, x, proba, label.
+        """the labels that arrived at `step` with their rows: step served, x, proba, model, label.
 
-        arrays are empty when nothing arrived.
+        model is an index into models, the one that served the row. arrays are
+        empty when nothing arrived.
         """
         at = np.concatenate(self.landings.get(step, [np.empty(0, np.int64)]))
-        return {name: self.columns[name][at] for name in ("step", "x", "proba", "label")}
+        return {name: self.columns[name][at] for name in ("step", "x", "proba", "model", "label")}
 
     def as_of(self, t):
         """what was known at step t: the rows served up to t, with labels arrived by t.
