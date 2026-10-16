@@ -260,6 +260,16 @@ trigger retrained or held and how late, and what each window bought, and
 writes it all to `results/retrain/`. Nothing gets promoted yet: a candidate
 that looks better still has to prove it, which is the next part.
 
+## Promotion
+
+`gate/compare.py` puts a candidate against the model in service on the same
+rows: the steps held out from its training, with the labels that have come
+back by the time the gate looks. Both models answer every row, so the gain is
+measured row by row and only the rows where they disagree make it uncertain.
+That error is far smaller than the one between two accuracies taken on
+different rows. The rows are a dataset like the ones models train on, kept in
+the store, so a comparison can be rebuilt.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
