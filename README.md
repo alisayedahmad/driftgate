@@ -270,6 +270,19 @@ That error is far smaller than the one between two accuracies taken on
 different rows. The rows are a dataset like the ones models train on, kept in
 the store, so a comparison can be rebuilt.
 
+`gate/policy.py` looks once, a few steps after the candidate was trained, and
+decides with what `gate/policy.toml` says mistakes cost. Given the rows, the
+true gain could be anywhere around the measured one; the gate weighs what
+promoting is expected to win against what it is expected to lose, a loss
+counting `penalty` times a gain. A promoted model serves just as long whether
+it turns out better or worse, so without that penalty the gate would promote
+on any gain above zero. How sure to be is a business choice, and the file is
+where to argue with it.
+
+The gate can't do anything about label noise: it judges with the labels it
+gets, and a candidate trained on wrong labels agrees with them better. Holding
+on noise is the trigger's job.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
