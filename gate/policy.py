@@ -37,9 +37,9 @@ def decide(result, policy):
 
     holds below policy["min_rows"] labeled rows, and when the candidate gives
     up a class, see gate.segments. otherwise promotes when the expected gain
-    beats penalty times the expected loss, both taken over what the true gain
-    could be given the rows: a likely small loss can outweigh a likely small
-    gain, and with little evidence both are wide.
+    beats penalty times the expected loss by more than policy["switch"], both
+    taken over what the true gain could be given the rows: a likely small loss
+    can outweigh a likely small gain, and with little evidence both are wide.
     """
     if result["rows"] < policy["min_rows"]:
         return Verdict(False, f"{result['rows']} labeled rows, {policy['min_rows']} needed")
@@ -48,8 +48,9 @@ def decide(result, policy):
         c, change, rows = lost[0]
         return Verdict(False, f"class {c} loses {-change:.3f} of recall on {rows} rows")
     up, down = expected(result["gain"], result["se"])
-    weighed = f"expected gain {up:.4f} against {policy['penalty']:g} x {down:.4f} expected loss"
-    return Verdict(up > policy["penalty"] * down, weighed)
+    weighed = (f"expected gain {up:.4f} against {policy['penalty']:g} x {down:.4f} expected loss "
+               f"and {policy['switch']:g} to switch")
+    return Verdict(up - policy["penalty"] * down > policy["switch"], weighed)
 
 
 def review(registry, candidate, incumbent, policy):

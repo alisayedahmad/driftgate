@@ -22,7 +22,7 @@ def test_expected_gain_and_loss_match_a_simulation():
 
 
 def test_the_shipped_policy_reads():
-    assert set(load()) == {"penalty", "shadow", "min_rows", "class_rows", "tolerance",
+    assert set(load()) == {"penalty", "switch", "shadow", "min_rows", "class_rows", "tolerance",
                            "class_confidence", "rollback", "challenge", "retry"}
 
 
@@ -31,7 +31,7 @@ def test_too_few_rows_hold_whatever_they_say():
 
 
 def test_without_a_penalty_any_expected_gain_promotes():
-    policy = {**load(), "penalty": 1.0}
+    policy = {**load(), "penalty": 1.0, "switch": 0.0}
     assert decide(result(0.001, 0.05), policy).promote
     assert not decide(result(-0.001, 0.05), policy).promote
 
@@ -40,6 +40,11 @@ def test_a_penalty_wants_more_evidence_the_noisier_the_gain():
     policy = {**load(), "penalty": 4.0}
     assert decide(result(0.02, 0.01), policy).promote
     assert not decide(result(0.02, 0.05), policy).promote
+
+
+def test_a_sure_gain_too_small_to_pay_for_the_switch_holds():
+    assert not decide(result(0.004, 0.0001), load()).promote
+    assert decide(result(0.004, 0.0001), {**load(), "switch": 0.0}).promote
 
 
 def test_a_concept_break_candidate_is_promoted(concept):

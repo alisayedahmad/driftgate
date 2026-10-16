@@ -289,7 +289,9 @@ promoting is expected to win against what it is expected to lose, a loss
 counting `penalty` times a gain. A promoted model serves just as long whether
 it turns out better or worse, so without that penalty the gate would promote
 on any gain above zero. How sure to be is a business choice, and the file is
-where to argue with it.
+where to argue with it. A switch isn't free either: the new model's monitors
+start from nothing, so what promoting is expected to bring has to clear
+`switch` as well.
 
 `gate/segments.py` holds a candidate that gives up a class: one with enough
 held-out labels whose recall falls by more than a tolerance, however good the
@@ -342,8 +344,9 @@ make gate
 runs every kind of scenario through the loop on seeds set aside for it, and
 puts every candidate the loop trained before five gates: the naive one, which
 compares the candidate's test accuracy with the one the incumbent was
-registered with, and the paired one with or without the penalty and the class
-guard, each after a shadow of 0 to 100 steps. Against the truth, it
+registered with, the paired one alone, with the penalty, with the class guard,
+and the one the loop runs with, which has both and the cost of a switch. Each
+judges after a shadow of 0 to 100 steps. Against the truth, it
 counts how often each gate promoted a candidate that was worse, missed one that
 was better, or let through one that gave up a class, and how much accuracy it
 left against a gate that knows the answer. It all goes to `results/gate/`.

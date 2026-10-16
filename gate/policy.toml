@@ -8,6 +8,11 @@
 # the same size mostly doesn't, hence more than 1.
 penalty = 4.0
 
+# what replacing the model in service costs on its own, in accuracy: its
+# monitors start over and lose what they had gathered, and a rollback check
+# follows. a promotion, or a rollback, has to be expected to gain more.
+switch = 0.005
+
 # steps the candidate shadows the model in service before the gate looks,
 # once. it is judged on the rows served meanwhile as well as its held-out ones,
 # with the labels back by then, and a better candidate waits that long to serve.

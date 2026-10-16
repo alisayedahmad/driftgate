@@ -26,7 +26,11 @@ NEVER = 10 ** 9
 
 
 def gates(policy):
-    """each gate, as a function of (registry, candidate, incumbent, compare()'s result) to promote."""
+    """each gate, as a function of (registry, candidate, incumbent, compare()'s result) to promote.
+
+    paired, penalty and guard leave out the cost of a switch, default is the
+    policy the loop runs with.
+    """
     def paired(**change):
         return lambda registry, new, old, got: decide(got, {**policy, **change}).promote
 
@@ -34,9 +38,9 @@ def gates(policy):
         # the candidate's own test accuracy against the one the incumbent was registered with
         return registry.get(new)["metrics"]["accuracy"] > registry.get(old)["metrics"]["accuracy"]
 
-    return {"naive": naive, "paired": paired(penalty=1.0, class_rows=NEVER),
-            "penalty": paired(class_rows=NEVER), "guard": paired(penalty=1.0),
-            "both": paired()}
+    return {"naive": naive, "paired": paired(penalty=1.0, switch=0.0, class_rows=NEVER),
+            "penalty": paired(switch=0.0, class_rows=NEVER),
+            "guard": paired(penalty=1.0, switch=0.0), "default": paired()}
 
 
 def run(job):
@@ -138,10 +142,11 @@ def report(out):
                                                                         "missed", "gave")]
         print(f"{kind:10s} {name:8s} {r['candidates']:4d} {cells[0]:>9s} {cells[1]:>6s} "
               f"{cells[2]:>7s} {cells[3]:>6s} {1000 * r['left']:6.1f}")
-    print("\naccuracy left x1000 by shadow, gate both")
-    print(f"{'kind':10s}" + "".join(f"{f'shadow {w}':>9s}" for w in SHADOWS))
+    print("\naccuracy left x1000 by shadow, default gate")
+    print(f"{'kind':10s}" + "".join(f"{f'shadow {w}':>12s}" for w in SHADOWS))
     for kind in KINDS:
-        print(f"{kind:10s}" + "".join(f"{1000 * out[kind, 'both', w]['left']:9.1f}" for w in SHADOWS))
+        cells = "".join(f"{1000 * out[kind, 'default', w]['left']:12.1f}" for w in SHADOWS)
+        print(f"{kind:10s}" + cells)
 
 
 def main():
