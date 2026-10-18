@@ -10,4 +10,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - run: make test
+      - run: make test 2>&1 | tee test.log
+        shell: bash
+      # the failing tests as annotations, readable without opening the log
+      - if: failure()
+        run: grep -E '^(FAILED|ERROR) ' test.log | sed 's/^/::error::/'
