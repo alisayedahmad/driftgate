@@ -7,7 +7,7 @@ from threadpoolctl import threadpool_limits
 
 from charts import MUTED, SERIES, legend, panels, save, style
 from gate.compare import compare
-from gate.policy import decide, load
+from gate.policy import decide, load, naive
 from loop import Loop
 from retrain.train import WINDOW, from_bytes
 from serving.app import replay
@@ -34,11 +34,10 @@ def gates(policy):
     def paired(**change):
         return lambda registry, new, old, got: decide(got, {**policy, **change}).promote
 
-    def naive(registry, new, old, got):
-        # the candidate's own test accuracy against the one the incumbent was registered with
-        return registry.get(new)["metrics"]["accuracy"] > registry.get(old)["metrics"]["accuracy"]
+    def registered(registry, new, old, got):
+        return naive(registry, new, old, policy)[3].promote
 
-    return {"naive": naive, "paired": paired(penalty=1.0, switch=0.0, class_rows=NEVER),
+    return {"naive": registered, "paired": paired(penalty=1.0, switch=0.0, class_rows=NEVER),
             "penalty": paired(switch=0.0, class_rows=NEVER),
             "guard": paired(penalty=1.0, switch=0.0), "default": paired()}
 

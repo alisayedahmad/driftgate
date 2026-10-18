@@ -1,6 +1,6 @@
 import numpy as np
 
-from gate.policy import load
+from gate.policy import load, naive
 from loop import Loop
 from retrain.test_train import ABOUT
 from retrain.train import WINDOW, from_bytes, train
@@ -67,3 +67,15 @@ def test_a_challenger_is_tried_every_so_often_while_nothing_else_is_pending():
     assert [r["step"] for r in loop.reviews if r["challenger"]] == [WINDOW + every,
                                                                     WINDOW + 2 * every]
     assert all(r["challenger"] for r in loop.reviews)
+
+
+def test_the_loop_runs_with_the_naive_gate():
+    # it judges on the registered test accuracies alone, when the candidate is trained
+    loop = Loop(Registry(Store(":memory:")), Scenario(3, "concept", at=AT, size=0.25), ABOUT,
+                {**load(), "shadow": 0}, gate=naive)
+    replay(loop.service, loop.s, LABELING, range(WINDOW, AT + 100), [loop.update])
+    assert loop.reviews
+    for r in loop.reviews:
+        new, old = (loop.registry.get(m) for m in (r["candidate"], r["incumbent"]))
+        assert r["step"] == new["step"]
+        assert r["promote"] == (new["metrics"]["accuracy"] > old["metrics"]["accuracy"])

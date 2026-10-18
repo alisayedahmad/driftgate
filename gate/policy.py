@@ -62,3 +62,17 @@ def review(registry, candidate, incumbent, policy):
     look = registry.get(candidate)["step"] + policy["shadow"]
     doc, result = compare(registry, candidate, incumbent, look)
     return look, doc, result, decide(result, policy)
+
+
+def naive(registry, candidate, incumbent, policy):
+    """the gate most pipelines start with, returning what review() does.
+
+    promotes when the candidate's test accuracy beats the one the incumbent was
+    registered with, two numbers from different rows, the incumbent's taken
+    before whatever made it retrain. it looks when the candidate is trained,
+    compares no rows of its own, and policy only counts for the signature.
+    """
+    new, old = (registry.get(m)["metrics"] for m in (candidate, incumbent))
+    got = {"rows": new["rows"], "gain": new["accuracy"] - old["accuracy"], "se": float("nan")}
+    reason = "its test accuracy against the incumbent's as registered"
+    return registry.get(candidate)["step"], None, got, Verdict(got["gain"] > 0, reason)

@@ -39,14 +39,16 @@ class Loop:
     policy["retry"] steps later, twice as late each time after that. a model's
     candidates are cut from the earliest start any of its alarms gave, or the
     alarms of a model rolled back from it; a challenger kept back changes
-    nothing. events lists (step, what happened),
-    and reviews every candidate the gate looked at, as dicts of step,
-    candidate, incumbent, challenger and promote.
+    nothing. gate judges a candidate and is called like gate.policy.review,
+    the default; the rollback check always compares rows. events lists (step, what
+    happened), and reviews every candidate the gate looked at, as dicts of
+    step, candidate, incumbent, challenger and promote.
     """
 
-    def __init__(self, registry, s, about, policy, window=Window(), trigger="informed"):
+    def __init__(self, registry, s, about, policy, window=Window(), trigger="informed",
+                 gate=review):
         self.registry, self.s, self.about = registry, s, about
-        self.policy, self.window, self.kind = policy, window, trigger
+        self.policy, self.window, self.kind, self.gate = policy, window, trigger, gate
         self.service = Service(registry, train(registry, s, WINDOW, None, about, LABELING))
         self.events, self.reviews = [], []
         self.promoted(WINDOW)
@@ -107,7 +109,8 @@ class Loop:
             self.rest(step)
 
     def judged(self, step):
-        _, _, got, verdict = review(self.registry, self.candidate, self.service.model, self.policy)
+        _, _, got, verdict = self.gate(self.registry, self.candidate, self.service.model,
+                                       self.policy)
         self.events.append((step, f"{'promote' if verdict.promote else 'keep'}: gain "
                                   f"{got['gain']:+.3f} ± {got['se']:.3f} on {got['rows']} rows, "
                                   f"{verdict.reason}"))
