@@ -1,0 +1,15 @@
+{
+  "args": {
+    "runs": "results/runs/runs.jsonl"
+  },
+  "code": {
+    "changes": "af10d0fa15a317fd638a2c4b781d7b3a18339b3fbbd51c484fc1ea8a2a776053",
+    "commit": "4393864bcb1d9b5da290301ed2acc943b4fcf735",
+    "dirty": true
+  },
+  "versions": {
+    "numpy": "2.5.3",
+    "python": "3.14.8",
+    "scikit-learn": "1.9.1"
+  }
+}

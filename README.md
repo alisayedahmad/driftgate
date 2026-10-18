@@ -380,6 +380,19 @@ run took. All policies are held to the same oracle: at each step, the best
 model any of them had trained on that scenario by then. The accuracy a run
 serves below it, summed over the steps, is its regret.
 
+```bash
+make report
+```
+
+reads those records and puts seven numbers side by side for each policy, over
+every kind and for each: how often a promoted model was truly worse than the
+one it replaced, how often a candidate kept back was truly better, how long
+after a change the trigger first decided something, how often it decided with
+nothing truly wrong, how long the accuracy took to come back, how many
+retrains brought nothing, and the regret. They go to `results/eval/` with a
+figure of the regret. No policy wins on all seven; the table is there to show
+what each one trades for what.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
