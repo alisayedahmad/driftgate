@@ -123,17 +123,26 @@ def write(out, path):
 
 
 def plot(out, path):
+    # against going straight in: the floor every schedule shares would hide the differences
     kinds = [k for k in KINDS if k != "none"] + ["none"]
+    names = [name for name in SCHEDULES if name != "straight"]
     fig, axes = panels([1] * len(kinds), height=10)
-    x = np.arange(len(SCHEDULES))
+    x = np.arange(len(names))
+    diff = {kind: [1000 * (out[kind, name]["lost"] - out[kind, "straight"]["lost"])
+                   for name in names] for kind in kinds}
+    # one scale for all, so a tiny difference looks tiny
+    top = max(max(abs(d) for d in v) for v in diff.values()) * 1.1
     for ax, kind in zip(axes, kinds):
-        lost = [1000 * out[kind, name]["lost"] for name in SCHEDULES]
-        ax.bar(x, lost, width=0.6, color=[SERIES[1] if name == "default" else SERIES[0]
-                                          for name in SCHEDULES])
+        ax.bar(x, diff[kind], width=0.6,
+               color=[SERIES[1] if name == "default" else SERIES[0] for name in names])
+        ax.axhline(0, color=MUTED, linewidth=0.8)
+        ax.set_ylim(-top, top)
         style(ax, kind)
-    axes[-1].set_xticks(x, list(SCHEDULES))
+    axes[-1].set_xticks(x, names)
     axes[-1].set_xlabel("schedule", color=MUTED)
-    save(fig, "accuracy below the best possible, mean over the run, in thousandths", path)
+    save(fig, "accuracy below the best possible over the run, minus the same going straight into "
+              "service\nwith no shadow, rollback or challenger, in thousandths: below zero is better",
+         path)
 
 
 def report(out):
