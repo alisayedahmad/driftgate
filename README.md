@@ -411,7 +411,11 @@ slow, it's lots of small files. Set `VENV=...` to put it somewhere else.
 
 Every push runs `make test` on a fresh Ubuntu machine, see
 `.github/workflows/ci.yml`. That includes the world fingerprints, so a change
-that draws different data on another CPU shows up there.
+that draws different data on another CPU shows up there. It also runs the loop
+on one scenario of each kind and checks it decides exactly what it decided
+before, step for step. A pipeline whose decisions change between commits
+without anyone meaning it is what this project is about catching, its own
+commits first; `make decisions` rewrites them when the change is meant.
 
 ## License
 
