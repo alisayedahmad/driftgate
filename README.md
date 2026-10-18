@@ -10,10 +10,11 @@ To answer that, the data is simulated. A scenario changes the data at a known
 step and in a known way, so every decision the pipeline takes can be compared
 with what really happened.
 
-Early stage: the simulated world, serving, monitoring, retraining and the gate
-are there, and `make loop` runs them end to end on one scenario. Rolling a new
-model out step by step, and judging the whole pipeline over many runs, come
-next.
+All of it is there: the simulated world, serving, monitoring, retraining, the
+gate and the rollout. `make loop` runs them end to end on one scenario, and
+`make sweep` and `make report` judge the whole pipeline over many runs and
+several policies against what was true. The pipeline has only ever seen
+simulated data; a real dataset is still to come.
 
 ## The simulated world
 
