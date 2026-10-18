@@ -15,3 +15,8 @@ jobs:
       # the failing tests as annotations, readable without opening the log
       - if: failure()
         run: grep -E '^(FAILED|ERROR) ' test.log | sed 's/^/::error::/'
+      # a model's bytes can depend on the CPU, so say which one ran and what a fit gave on it
+      - if: always()
+        run: |
+          fit=$($HOME/.venvs/driftgate/bin/python -c "import hashlib; from retrain.train import CONFIG, fit, to_bytes; from retrain.test_train import rows; print(hashlib.sha256(to_bytes(fit(*rows(3), CONFIG))).hexdigest()[:16])")
+          echo "::notice::$(lscpu | sed -n 's/^Model name: *//p'), the reference fit hashes to $fit"
