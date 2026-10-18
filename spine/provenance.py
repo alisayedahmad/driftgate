@@ -113,4 +113,5 @@ def stamp(out, args, about):
     about the {"code": ..., "versions": ...} read when it started.
     """
     doc = {"args": {name: value for name, value in vars(args).items() if name != "out"}, **about}
-    (Path(out) / "about.json").write_text(json.dumps(doc, indent=2, sort_keys=True) + "\n")
+    text = json.dumps(doc, indent=2, sort_keys=True, default=str)
+    (Path(out) / "about.json").write_text(text + "\n")

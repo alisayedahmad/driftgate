@@ -1,0 +1,15 @@
+{
+  "args": {
+    "seeds": 100
+  },
+  "code": {
+    "changes": "83a80e0d486fa348e681622170f2b354cec96cdcead82774ed0ed83f9348ff49",
+    "commit": "fa139e1532adb1278045217a6d75ac0e28fb8729",
+    "dirty": true
+  },
+  "versions": {
+    "numpy": "2.5.3",
+    "python": "3.14.8",
+    "scikit-learn": "1.9.1"
+  }
+}

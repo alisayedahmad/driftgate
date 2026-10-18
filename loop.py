@@ -41,8 +41,9 @@ class Loop:
     alarms of a model rolled back from it; a challenger kept back changes
     nothing. gate judges a candidate and is called like gate.policy.review,
     the default; the rollback check always compares rows. events lists (step, what
-    happened), and reviews every candidate the gate looked at, as dicts of
-    step, candidate, incumbent, challenger and promote.
+    happened), reviews every candidate the gate looked at, as dicts of step,
+    candidate, incumbent, challenger and promote, and decisions every one of
+    the trigger's, as dicts of step and action.
     """
 
     def __init__(self, registry, s, about, policy, window=Window(), trigger="informed",
@@ -50,7 +51,7 @@ class Loop:
         self.registry, self.s, self.about = registry, s, about
         self.policy, self.window, self.kind, self.gate = policy, window, trigger, gate
         self.service = Service(registry, train(registry, s, WINDOW, None, about, LABELING))
-        self.events, self.reviews = [], []
+        self.events, self.reviews, self.decisions = [], [], []
         self.promoted(WINDOW)
 
     def promoted(self, step, replaced=None):
@@ -99,6 +100,7 @@ class Loop:
     def decided(self, step, d):
         # monitors watched again only see a change from when they restarted
         self.since = d.start if self.since is None else min(self.since, d.start)
+        self.decisions.append({"step": step, "action": d.action})
         self.events.append((step, f"{d.action}: {d.reason}, change put at {self.since}"))
         if d.action == "hold":
             return self.rest(step)

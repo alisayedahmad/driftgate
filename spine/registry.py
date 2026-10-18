@@ -78,6 +78,11 @@ class Registry:
             model = record["parent"]
         return chain
 
+    def records(self):
+        """every record, by the step its model was trained at, then by model."""
+        rows = self.store.db.execute("select record from models").fetchall()
+        return sorted((json.loads(row[0]) for row in rows), key=lambda r: (r["step"], r["model"]))
+
     def dump(self):
         """every record as canonical JSON, one per line, sorted by model."""
         rows = self.store.db.execute("select record from models order by model").fetchall()

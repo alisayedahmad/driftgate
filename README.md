@@ -364,6 +364,22 @@ best possible, how long it took to recover from the change, and how long a
 promoted model truly worse than the one it replaced stayed in service. It all
 goes to `results/rollout/`.
 
+## Judging the pipeline
+
+```bash
+make sweep
+```
+
+runs every kind of scenario on seeds set aside for it under a handful of
+policies: the naive pipeline, which retrains when the errors go up and promotes
+when a test accuracy beats the one registered before, straight into service;
+the defaults; and the defaults with one thing changed, no penalty in the gate,
+the whole window kept for retraining, or a longer shadow. It keeps one record
+per run in `results/runs/`, with what the truth says about every decision the
+run took. All policies are held to the same oracle: at each step, the best
+model any of them had trained on that scenario by then. The accuracy a run
+serves below it, summed over the steps, is its regret.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python

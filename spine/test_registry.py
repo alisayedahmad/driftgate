@@ -71,3 +71,10 @@ def test_fresh_starts_each_run_empty(tmp_path, monkeypatch):
     r.register(record(r.store, "a"))
     assert r.dump() != ""
     assert fresh("run").dump() == ""
+
+
+def test_records_come_by_the_step_they_were_trained_at():
+    r = Registry(Store(":memory:"))
+    late = r.register(record(r.store, "late", step=9))
+    early = r.register(record(r.store, "early", step=2))
+    assert [rec["model"] for rec in r.records()] == [early, late]
