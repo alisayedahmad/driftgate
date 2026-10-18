@@ -102,9 +102,13 @@ CSV, next to a plot of them.
 ## Models
 
 `retrain/train.py` fits a multinomial logistic regression, each row counting
-for its weight, and saves it as bytes. The same data and config give the same
-bytes, in any process and with any number of threads, so a model can be known
-by the hash of those bytes.
+for its weight, and saves it as bytes. On one machine the same data and config
+give the same bytes, in any process and with any number of threads, so a model
+can be known by the hash of those bytes. Another CPU can differ in the last
+bit: a fit made on the laptop this was written on and the same fit on the
+machine that runs the tests on GitHub hash differently. The world draws the
+same data on both, and the loop takes the same decisions, but a registry
+belongs to the machine it was built on, and its records say which one.
 
 ## Traceability
 

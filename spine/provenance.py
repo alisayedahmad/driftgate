@@ -102,8 +102,20 @@ def code(root=ROOT):
 
 
 def versions():
-    return {"python": platform.python_version(),
-            "numpy": version("numpy"), "scikit-learn": version("scikit-learn")}
+    """the library versions, and the CPU: a fit's last bits can differ from one to another."""
+    return {"python": platform.python_version(), "numpy": version("numpy"),
+            "scikit-learn": version("scikit-learn"), "cpu": cpu()}
+
+
+def cpu():
+    # /proc/cpuinfo names the model, platform.processor() often only the architecture
+    try:
+        for line in Path("/proc/cpuinfo").read_text().splitlines():
+            if line.startswith("model name"):
+                return line.split(":", 1)[1].strip()
+    except OSError:
+        pass
+    return platform.processor()
 
 
 def stamp(out, args, about):
