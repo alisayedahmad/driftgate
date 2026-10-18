@@ -17,18 +17,25 @@ FILE = Path(__file__).with_name("decisions.txt")
 
 
 def fingerprint(s):
-    """first 16 hex digits of a sha256 over what the loop did on s with the default policy.
+    """first 16 hex digits of a sha256 over what the loop decided on s with the default policy.
 
-    that is every event, step and text, and the lineage of the model serving
-    at the end.
+    that is the trigger's decisions, every review and whether it promoted,
+    the rollbacks, and the steps the models serving at the end descend from
+    were trained at. no model bytes and no measured numbers: another CPU can
+    move those in the last bit without the loop deciding anything else.
     """
     loop = Loop(Registry(Store(":memory:")), s, ABOUT, load())
     replay(loop.service, s, LABELING, range(WINDOW, STEPS), [loop.update])
     h = hashlib.sha256()
+    for d in loop.decisions:
+        h.update(f"decide {d['step']} {d['action']}\n".encode())
+    for r in loop.reviews:
+        h.update(f"review {r['step']} {r['challenger']} {r['promote']}\n".encode())
     for step, what in loop.events:
-        h.update(f"{step} {what}\n".encode())
+        if what.startswith("roll back"):
+            h.update(f"roll back {step}\n".encode())
     for record in loop.registry.lineage(loop.service.model):
-        h.update(record["model"].encode())
+        h.update(f"lineage {record['step']}\n".encode())
     return h.hexdigest()[:16]
 
 
