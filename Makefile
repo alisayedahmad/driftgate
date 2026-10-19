@@ -2,7 +2,7 @@
 VENV ?= $(HOME)/.venvs/driftgate
 PY := $(VENV)/bin/python
 
-.PHONY: help env test world fingerprints decisions train serve replay monitor retrain loop gate rollout sweep report
+.PHONY: help env test world fingerprints decisions train serve replay monitor retrain loop gate rollout sweep report image container
 
 help:  ## every target, one line each
 	@grep -E '^[a-z][a-z-]*:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-13s %s\n", $$1, $$2}'
@@ -60,3 +60,12 @@ sweep: env  ## every policy on 100 seeds per kind, one record per run, to result
 
 report: env  ## the seven metrics per policy from make sweep's records, to results/eval/
 	$(PY) -m eval.report
+
+IMAGE ?= driftgate
+T ?= test
+
+image:  ## the environment as a docker image, the repository is mounted when it runs
+	docker build -t $(IMAGE) .
+
+container:  ## run target T in the image on the checked out commit, T=test by default
+	docker run --rm -v "$(CURDIR)":/work $(IMAGE) $(T) SEED=$(SEED) KIND=$(KIND)

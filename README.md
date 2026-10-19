@@ -424,6 +424,17 @@ before, step for step. A pipeline whose decisions change between commits
 without anyone meaning it is what this project is about catching, its own
 commits first; `make decisions` rewrites them when the change is meant.
 
+```bash
+make image                # build the environment as a docker image
+make container T=test     # run any target in it
+```
+
+The image holds the environment only, the interpreter and packages `make env`
+installs, set up the same way. The repository isn't copied in but mounted when
+the image runs, git history included, so `make container T=...` runs a target
+on whatever commit is checked out, and what it writes lands in the repository
+as usual.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).

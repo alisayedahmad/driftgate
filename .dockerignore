@@ -1,0 +1,5 @@
+# the image only needs what make env reads, the repository is mounted when it runs
+*
+!Makefile
+!.python-version
+!requirements.txt
