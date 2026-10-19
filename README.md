@@ -435,6 +435,12 @@ the image runs, git history included, so `make container T=...` runs a target
 on whatever commit is checked out, and what it writes lands in the repository
 as usual.
 
+`make same` checks what the image is for: on one machine, it has to compute
+exactly what the machine computes outside it, the world, the loop's decisions,
+a reference fit and a small sweep, byte for byte. Every push runs it in CI.
+It only means anything on one machine, since a fit's bytes can change with
+the CPU.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).

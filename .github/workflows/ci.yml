@@ -8,8 +8,10 @@ jobs:
   test:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version: "0.13.0"
       - run: make test 2>&1 | tee test.log
         shell: bash
       # the failing tests as annotations, readable without opening the log
@@ -20,3 +22,18 @@ jobs:
         run: |
           fit=$($HOME/.venvs/driftgate/bin/python -c "import hashlib; from retrain.train import CONFIG, fit, to_bytes; from retrain.test_train import rows; print(hashlib.sha256(to_bytes(fit(*rows(3), CONFIG))).hexdigest()[:16])")
           echo "::notice::$(lscpu | sed -n 's/^Model name: *//p'), the reference fit hashes to $fit"
+
+  container:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      # the same uv as the image, so both set the environment up the same way
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version: "0.13.0"
+      - run: make same
+      # one machine, so one CPU: whatever differs comes from the environment
+      - if: success()
+        run: echo "::notice::$(lscpu | sed -n 's/^Model name: *//p'), the image computed the same bytes as the host"
+      - if: failure()
+        run: echo "::error::the image and the host computed different bytes, see diff -r build/same/host build/same/image"

@@ -2,7 +2,7 @@
 VENV ?= $(HOME)/.venvs/driftgate
 PY := $(VENV)/bin/python
 
-.PHONY: help env test world fingerprints decisions train serve replay monitor retrain loop gate rollout sweep report image container
+.PHONY: help env test world fingerprints decisions train serve replay monitor retrain loop gate rollout sweep report image container same computed
 
 help:  ## every target, one line each
 	@grep -E '^[a-z][a-z-]*:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-13s %s\n", $$1, $$2}'
@@ -69,3 +69,13 @@ image:  ## the environment as a docker image, the repository is mounted when it 
 
 container:  ## run target T in the image on the checked out commit, T=test by default
 	docker run --rm -v "$(CURDIR)":/work $(IMAGE) $(T) SEED=$(SEED) KIND=$(KIND)
+
+same: env image  ## check the image computes what this machine does, byte for byte, in build/same/
+	rm -rf build/same
+	$(PY) -m eval.same build/same/host
+	docker run --rm -v "$(CURDIR)":/work $(IMAGE) computed OUT=build/same/image
+	diff -r build/same/host build/same/image
+
+# what an environment computes, for make same
+computed: env
+	$(PY) -m eval.same $(OUT)
