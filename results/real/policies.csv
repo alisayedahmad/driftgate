@@ -1,0 +1,4 @@
+policy,accuracy,regret,decisions,holds,promotions,rollbacks
+never,0.6094,189.4750,0.0000,0.0000,0.0000,0.0000
+naive,0.6724,147.3125,5.4000,0.0000,0.7000,0.0000
+default,0.8597,21.9875,5.0000,0.1000,5.9000,0.4000

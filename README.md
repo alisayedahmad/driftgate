@@ -13,8 +13,8 @@ with what really happened.
 All of it is there: the simulated world, serving, monitoring, retraining, the
 gate and the rollout. `make loop` runs them end to end on one scenario, and
 `make sweep` and `make report` judge the whole pipeline over many runs and
-several policies against what was true. The pipeline has only ever seen
-simulated data; a real dataset is still to come.
+several policies against what was true. `make real` runs it on a real
+dataset, to check that nothing in it depends on the data being simulated.
 
 ## The simulated world
 
@@ -435,6 +435,26 @@ the labels, where the pipeline only gets some of them, and late.
 `world/truth.py` judges it there by the share of every row of a few steps it
 gets right against its real label, and the oracle of `eval/oracle.py` takes
 whichever judge fits the stream, so regret means the same on both.
+
+```bash
+make real
+```
+
+runs the first model served as it is, the naive pipeline and the defaults
+over the gas data, labels coming back as for a scenario under several seeds,
+nothing tuned on it. Every step is judged on all its real labels, and regret
+is counted against the best model any of the three had trained by then. The
+numbers and a figure of the true accuracy over time, batches marked, go to
+`results/real/`.
+
+Doing it turned up two more things the synthetic world had hidden, besides
+the shape of the data. The error monitor expected its model to make some
+errors in testing, and divided by zero when it made none. The gate asked for
+a number of labeled rows that only the synthetic rhythm ever gives, and held
+back every candidate on the gas data, the clearest ones included. Both are
+fixed for any stream and change nothing on the synthetic one. With them, the
+defaults, tuned on synthetic data only, keep up with the sensors as they
+drift, where the first model and the naive pipeline don't.
 
 ## Setup
 

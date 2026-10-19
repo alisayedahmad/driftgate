@@ -2,7 +2,7 @@
 VENV ?= $(HOME)/.venvs/driftgate
 PY := $(VENV)/bin/python
 
-.PHONY: help env test world fingerprints decisions data train serve replay monitor retrain loop gate rollout sweep report image container same computed
+.PHONY: help env test world fingerprints decisions data train serve replay monitor retrain loop gate rollout sweep report real image container same computed
 
 help:  ## every target, one line each
 	@grep -E '^[a-z][a-z-]*:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-13s %s\n", $$1, $$2}'
@@ -65,6 +65,9 @@ sweep: env  ## every policy on 100 seeds per kind, one record per run, to result
 
 report: env  ## the seven metrics per policy from make sweep's records, to results/eval/
 	$(PY) -m eval.report
+
+real: env  ## the pipeline on the gas sensor data, after make data, to results/real/
+	$(PY) -m eval.real
 
 IMAGE ?= driftgate
 T ?= test

@@ -1,0 +1,16 @@
+{
+  "args": {
+    "seeds": 10
+  },
+  "code": {
+    "changes": "4e582c78720b7e370300f8106202017077bb5f51ca983e8a8faec52696a51164",
+    "commit": "de63b652e4ad45d2d65bdfa07bf96c5d7d5ee482",
+    "dirty": true
+  },
+  "versions": {
+    "cpu": "Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz",
+    "numpy": "2.5.3",
+    "python": "3.14.8",
+    "scikit-learn": "1.9.1"
+  }
+}
