@@ -433,7 +433,8 @@ The image holds the environment only, the interpreter and packages `make env`
 installs, set up the same way. The repository isn't copied in but mounted when
 the image runs, git history included, so `make container T=...` runs a target
 on whatever commit is checked out, and what it writes lands in the repository
-as usual.
+as usual. `make container T=serve` serves a model on port 8000 of the machine,
+the service listening on every interface inside the container.
 
 `make same` checks what the image is for: on one machine, it has to compute
 exactly what the machine computes outside it, the world, the loop's decisions,

@@ -93,14 +93,16 @@ def main():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--kind", choices=KINDS, default="concept")
     parser.add_argument("--port", type=int, default=8000)
+    # 0.0.0.0 in a container, for the port to be reached from outside it
+    parser.add_argument("--host", default="127.0.0.1")
     args = parser.parse_args()
 
     registry = fresh(f"serve-{args.kind}-{args.seed}")
     s = Scenario.draw(args.seed, args.kind)
     model = train(registry, s, WINDOW, None, {"code": code(), "versions": versions()}, LABELING)
     print(f"serving {model[:12]}, trained at step {WINDOW} of seed {s.seed} ({s.kind}), "
-          f"on http://127.0.0.1:{args.port}", flush=True)
-    uvicorn.run(http(Service(registry, model)), host="127.0.0.1", port=args.port,
+          f"on {args.host}:{args.port}", flush=True)
+    uvicorn.run(http(Service(registry, model)), host=args.host, port=args.port,
                 log_level="warning")
 
 

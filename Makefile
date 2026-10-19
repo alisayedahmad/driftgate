@@ -34,8 +34,10 @@ decisions: env  ## rewrite eval/decisions.txt, only when the loop's decisions ar
 train: env  ## train two models on a scenario, register them, rebuild them from their records
 	$(PY) -m retrain.train --seed $(SEED) --kind $(KIND)
 
+HOST ?= 127.0.0.1
+
 serve: env  ## serve a model trained on a scenario at http://127.0.0.1:8000, SEED= and KIND=
-	$(PY) -m serving.app --seed $(SEED) --kind $(KIND)
+	$(PY) -m serving.app --seed $(SEED) --kind $(KIND) --host $(HOST)
 
 replay: env  ## replay a scenario through the service, true accuracy against what was known
 	$(PY) -m serving.replay --seed $(SEED) --kind $(KIND)
@@ -67,8 +69,9 @@ T ?= test
 image:  ## the environment as a docker image, the repository is mounted when it runs
 	docker build -t $(IMAGE) .
 
+# serve listens on every interface inside, and its port is published
 container:  ## run target T in the image on the checked out commit, T=test by default
-	docker run --rm -v "$(CURDIR)":/work $(IMAGE) $(T) SEED=$(SEED) KIND=$(KIND)
+	docker run --rm $(if $(filter serve,$(T)),-p 8000:8000) -v "$(CURDIR)":/work $(IMAGE) 		$(T) SEED=$(SEED) KIND=$(KIND) HOST=0.0.0.0
 
 same: env image  ## check the image computes what this machine does, byte for byte, in build/same/
 	rm -rf build/same
