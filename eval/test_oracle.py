@@ -27,7 +27,8 @@ def test_the_best_available_model_is_never_below_the_one_serving():
             served[step] = judge(s, loop.service.estimator.predict, step, N)["accuracy"]
 
     replay(loop.service, s, LABELING, range(WINDOW, AT + 150), [truth, loop.update])
-    best, which = best_available(s, [loop.registry], steps, N)
+    best, which = best_available([loop.registry], steps,
+                                 lambda predict, t: judge(s, predict, t, N)["accuracy"])
     got = np.array([served[t] for t in steps])
     assert (best >= got).all()
     # the first model alone is available until the first candidate is trained,

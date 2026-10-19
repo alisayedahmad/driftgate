@@ -39,8 +39,9 @@ class Scenario:
     at: int | None = None
     size: float = 0.0
 
-    # the shape of what it serves: columns of x, labels it can give, rows a step
-    features, labels, rows = FEATURES, CLASSES + 1, ROWS
+    # the shape of what it serves: columns of x, labels it can give, rows a step,
+    # and no last step
+    features, labels, rows, steps = FEATURES, CLASSES + 1, ROWS, None
 
     def __post_init__(self):
         if not 0 <= self.seed < 2**32:

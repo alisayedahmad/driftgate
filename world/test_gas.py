@@ -54,3 +54,11 @@ def test_the_gas_stream_goes_through_the_whole_pipeline():
     assert loop.registry.stream(first) == s
     assert loop.service.log.batch(WINDOW)["proba"].shape == (s.rows, s.labels)
     assert len(loop.monitors["inputs"].path) > 0
+
+
+@pytest.mark.skipif(not HAVE, reason="the gas data isn't downloaded, make data")
+def test_the_last_block_stops_at_the_end_of_the_stream():
+    from world.truth import realized
+    s = Gas()
+    y = np.concatenate([s.batch(t)[1] for t in range(s.steps - 5, s.steps)])
+    assert realized(s, lambda x: np.zeros(len(x), dtype=int), s.steps - 5, 20) == (y == 0).mean()

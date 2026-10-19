@@ -111,7 +111,8 @@ def run(job):
     possible = np.array([judge(s, lambda x, t=t: s.proba(x, t).argmax(axis=1), t, JUDGED)["accuracy"]
                          for t in steps])
     runs = {name: looped(s, about, setup, set(steps.tolist())) for name, setup in POLICIES.items()}
-    best, _ = best_available(s, [loop.registry for loop, _ in runs.values()], steps, JUDGED)
+    best, _ = best_available([loop.registry for loop, _ in runs.values()], steps,
+                             lambda predict, t: judge(s, predict, t, JUDGED)["accuracy"])
     out = []
     for name, (loop, timeline) in runs.items():
         served = np.array([accuracy for _, _, accuracy in timeline])

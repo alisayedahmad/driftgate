@@ -430,6 +430,12 @@ expect otherwise. Labels come back as `world/labels.py` decides, the data
 doesn't say when they would have. A recipe names the archive by its sha256,
 so a model trained on it rebuilds from its record like any other.
 
+On real data there is no P(y|x) to judge a model against, but there are all
+the labels, where the pipeline only gets some of them, and late.
+`world/truth.py` judges it there by the share of every row of a few steps it
+gets right against its real label, and the oracle of `eval/oracle.py` takes
+whichever judge fits the stream, so regret means the same on both.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python

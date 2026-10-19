@@ -2,7 +2,7 @@ import numpy as np
 
 from world.scenarios import Scenario
 from world.stream import BAYES, CLASSES, PRIORS
-from world.truth import JUDGED, judge
+from world.truth import JUDGED, judge, realized
 
 
 def best(s, step):
@@ -46,3 +46,12 @@ def test_label_noise_is_judged_on_the_clean_labels():
     noisy, clean = judge(s, model, s.at + 10), judge(s.twin(), model, s.at + 10)
     assert noisy["accuracy"] == clean["accuracy"]
     assert np.array_equal(noisy["recall"], clean["recall"], equal_nan=True)
+
+
+def test_realized_counts_the_right_answers_on_every_row():
+    s = Scenario(3)
+    model = best(s, 400)
+    x, y = zip(*(s.batch(t) for t in range(400, 410)))
+    assert realized(s, model, 400, 10) == (model(np.concatenate(x)) == np.concatenate(y)).mean()
+    # a thousand drawn labels land near what the judge expects
+    assert abs(realized(s, model, 400, 10) - judge(s, model, 400)["accuracy"]) < 0.05
