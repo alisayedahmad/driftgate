@@ -18,8 +18,11 @@ switch = 0.005
 # with the labels back by then, and a better candidate waits that long to serve.
 shadow = 10
 
-# with fewer labeled rows than this the gate holds whatever they say
-min_rows = 100
+# with fewer labeled rows than this the gate holds whatever they say. below a
+# few dozen the standard error of the gain is a poor guess; above, it says on
+# its own how sure to be. it counts rows, and a stream serving fewer of them a
+# step gets fewer for the same shadow.
+min_rows = 30
 
 # a class with at least class_rows held-out labels holds the promotion when
 # its recall falls by more than tolerance with class_confidence at least,

@@ -27,7 +27,7 @@ def test_the_shipped_policy_reads():
 
 
 def test_too_few_rows_hold_whatever_they_say():
-    assert not decide(result(0.2, 0.01, rows=50), load()).promote
+    assert not decide(result(0.2, 0.01, rows=20), load()).promote
 
 
 def test_without_a_penalty_any_expected_gain_promotes():
