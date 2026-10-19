@@ -400,6 +400,25 @@ retrains brought nothing, and the regret. They go to `results/eval/` with a
 figure of the regret. No policy wins on all seven; the table is there to show
 what each one trades for what.
 
+## Real data
+
+The synthetic world is where the numbers can be checked against what was
+true. A real dataset is there for something else: to show that nothing in the
+machinery depends on the data being synthetic. It is the Gas Sensor Array
+Drift dataset, readings of an array of chemical sensors exposed to several
+gases, taken in batches over three years while the sensors aged (A. Vergara
+et al., UCI Machine Learning Repository, CC BY 4.0; see their *Chemical gas
+sensor drift compensation using classifier ensembles*, Sensors and Actuators
+B, 2012).
+
+```bash
+make data
+```
+
+downloads it once into `~/.cache/driftgate/`, which `DRIFTGATE_DATA` can move,
+checks it against the sha256 the code was written for, and prints each batch.
+It is never committed.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python

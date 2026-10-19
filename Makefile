@@ -2,7 +2,7 @@
 VENV ?= $(HOME)/.venvs/driftgate
 PY := $(VENV)/bin/python
 
-.PHONY: help env test world fingerprints decisions train serve replay monitor retrain loop gate rollout sweep report image container same computed
+.PHONY: help env test world fingerprints decisions data train serve replay monitor retrain loop gate rollout sweep report image container same computed
 
 help:  ## every target, one line each
 	@grep -E '^[a-z][a-z-]*:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-13s %s\n", $$1, $$2}'
@@ -30,6 +30,9 @@ fingerprints: env  ## rewrite world/fingerprints.txt, only when the data is mean
 
 decisions: env  ## rewrite eval/decisions.txt, only when the loop's decisions are meant to change
 	$(PY) -m eval.decisions
+
+data: env  ## download the gas sensor data once into ~/.cache/driftgate, DRIFTGATE_DATA= moves it
+	$(PY) -m world.gas
 
 train: env  ## train two models on a scenario, register them, rebuild them from their records
 	$(PY) -m retrain.train --seed $(SEED) --kind $(KIND)
