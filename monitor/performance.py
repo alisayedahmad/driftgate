@@ -10,15 +10,18 @@ class Performance(Monitor):
     """a CUSUM on the error rate of the labels that land at each step, for the rows the model served.
 
     the reference is one minus the accuracy the model was tested at, from its
-    registry record. labels of rows another model served are left out, and a
-    step where none of its own land leaves the CUSUM as it was. update is a
-    replay watcher, Monitor says what it keeps. its steps are the ones labels
-    land at, which come after the rows they belong to were served.
+    registry record, and at least one over the rows it was tested on: no
+    error on n rows only says it is below about 1/n. labels of rows another
+    model served are left out, and a step where none of its own land leaves
+    the CUSUM as it was. update is a replay watcher, Monitor says what it
+    keeps. its steps are the ones labels land at, which come after the rows
+    they belong to were served.
     """
 
     def __init__(self, registry, model, k=0.5):
         self.model = model
-        self.error = 1 - registry.get(model)["metrics"]["accuracy"]
+        tested = registry.get(model)["metrics"]
+        self.error = max(1 - tested["accuracy"], 1 / tested["rows"])
         super().__init__(1, k)
 
     def update(self, step, log):

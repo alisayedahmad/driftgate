@@ -65,10 +65,19 @@ def test_the_first_label_of_a_new_class_is_an_alarm():
     assert shares.starts[shares.steps.index(step)] == step
 
 
-class Tested:
-    # a registry that only knows the accuracy every model was tested at
+class Measured:
+    # a registry that only knows what every model was tested at, and on how many rows
+    def __init__(self, accuracy=0.8, rows=1000):
+        self.metrics = {"accuracy": accuracy, "rows": rows}
+
     def get(self, model):
-        return {"metrics": {"accuracy": 0.8}}
+        return {"metrics": self.metrics}
+
+
+def test_a_perfect_test_still_leaves_room_for_an_error():
+    # no error on 200 rows, as a model can get on easy real data
+    assert Performance(Measured(1.0, 200), "a" * 64).error == 1 / 200
+    assert Performance(Measured(0.8, 200), "a" * 64).error == pytest.approx(0.2)
 
 
 def test_only_labels_of_rows_the_model_served_count():
@@ -78,7 +87,7 @@ def test_only_labels_of_rows_the_model_served_count():
     log.served(1, x, "b" * 64, np.eye(CLASSES + 1)[zeros])
     log.arrived(2, 0, range(10), zeros)
     log.arrived(2, 1, range(10), zeros)
-    performance = Performance(Tested(), "b" * 64)
+    performance = Performance(Measured(), "b" * 64)
     performance.update(2, log)
     # b got its 10 rows right, the 10 that a got wrong aren't its own
     z = -0.2 / np.sqrt(0.2 * 0.8 / 10)
