@@ -2,7 +2,6 @@ import numpy as np
 
 from monitor.cusum import Monitor
 from monitor.reference import window
-from world.stream import FEATURES
 
 
 class InputDrift(Monitor):
@@ -15,7 +14,7 @@ class InputDrift(Monitor):
     def __init__(self, registry, model, k=0.5):
         x = window(registry, model)
         self.mean, self.sd = x.mean(axis=0), x.std(axis=0)
-        super().__init__(FEATURES, k)
+        super().__init__(x.shape[1], k)
 
     def update(self, step, log):
         x = log.batch(step)["x"]

@@ -11,7 +11,7 @@ from world.truth import judge
 
 
 def test_paired_on_rows_worked_by_hand():
-    got = paired([1, 1, 0, 1, 0, 1], [1, 0, 0, 1, 1, 0], [0, 0, 1, 1, 2, 2])
+    got = paired([1, 1, 0, 1, 0, 1], [1, 0, 0, 1, 1, 0], [0, 0, 1, 1, 2, 2], labels=5)
     d = np.array([0, 1, 0, 0, -1, 1])
     assert got["rows"] == 6
     assert got["gain"] == pytest.approx(1 / 6)
@@ -28,7 +28,7 @@ def test_pairing_shrinks_the_error_when_models_mostly_agree():
     p, q = old.mean(), new.mean()
     apart = np.sqrt(p * (1 - p) / 2000 + q * (1 - q) / 2000)
     # 5% of rows differ, the theory gives about a third
-    assert paired(new, old, np.zeros(2000, dtype=int))["se"] < apart / 2
+    assert paired(new, old, np.zeros(2000, dtype=int), labels=5)["se"] < apart / 2
 
 
 def test_the_paired_gain_finds_the_true_one(concept):

@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from spine.provenance import canonical
+from spine.provenance import canonical, stream
 from spine.store import Store
 
 FIELDS = ("model", "trained_on", "evaluated_on", "config", "code", "versions", "metrics",
@@ -77,6 +77,11 @@ class Registry:
             chain.append(record)
             model = record["parent"]
         return chain
+
+    def stream(self, model):
+        """the stream a model was trained on, rebuilt from the recipe of its training rows."""
+        record = self.get(model)
+        return stream(json.loads(self.store.get(record["trained_on"]))["recipe"]["scenario"])
 
     def records(self):
         """every record, by the step its model was trained at, then by model."""

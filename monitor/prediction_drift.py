@@ -3,7 +3,6 @@ import numpy as np
 from monitor.cusum import Monitor
 from monitor.reference import window
 from retrain.train import from_bytes
-from world.stream import CLASSES
 
 
 class PredictionDrift(Monitor):
@@ -16,13 +15,14 @@ class PredictionDrift(Monitor):
 
     def __init__(self, registry, model, k=0.5):
         pred = from_bytes(registry.store.get(model)).predict(window(registry, model))
-        self.share = np.bincount(pred, minlength=CLASSES + 1) / len(pred)
-        super().__init__(CLASSES + 1, k)
+        labels = registry.stream(model).labels
+        self.share = np.bincount(pred, minlength=labels) / len(pred)
+        super().__init__(labels, k)
 
     def update(self, step, log):
         pred = log.batch(step)["proba"].argmax(axis=1)
-        share = np.bincount(pred, minlength=CLASSES + 1) / len(pred)
-        z = np.full(CLASSES + 1, np.nan)
+        share = np.bincount(pred, minlength=len(self.share)) / len(pred)
+        z = np.full(len(self.share), np.nan)
         known = self.share > 0
         z[known] = (share[known] - self.share[known]) / np.sqrt(
             self.share[known] * (1 - self.share[known]) / len(pred))

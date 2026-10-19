@@ -2,8 +2,6 @@ import json
 
 import numpy as np
 
-from world.scenarios import Scenario
-
 
 def window(registry, model):
     """x of every row of the model's training window, labeled or not, from its record.
@@ -16,5 +14,5 @@ def window(registry, model):
     record = registry.get(model)
     fit, test = (json.loads(registry.store.get(record[field]))["recipe"]
                  for field in ("trained_on", "evaluated_on"))
-    s = Scenario(**fit["scenario"])
+    s = registry.stream(model)
     return np.concatenate([s.batch(t)[0] for t in range(fit["steps"][0], test["steps"][1])])

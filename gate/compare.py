@@ -3,25 +3,23 @@ import json
 import numpy as np
 
 from retrain.train import from_bytes
-from spine.provenance import canonical, dataset
-from world.scenarios import Scenario
-from world.stream import CLASSES
+from spine.provenance import canonical, dataset, stream
 
 
-def paired(new, old, y):
+def paired(new, old, y, labels):
     """how much better new does than old on the same rows, with the error of that estimate.
 
     new and old are bools, whether each model got each row right, y the labels.
     gain is the difference in accuracy and se its standard error, from the
     per row differences, which is much smaller than for two separate test sets
     when the models agree on most rows. per class, over the rows of that label,
-    the same for recall, in arrays of length CLASSES + 1. a gain is nan without
-    rows, a se without two.
+    the same for recall, in arrays of length labels, the labels the stream can
+    give. a gain is nan without rows, a se without two.
     """
     d = np.asarray(new, dtype=float) - np.asarray(old, dtype=float)
     y = np.asarray(y)
-    out = {"rows": len(d), **_mean(d), "class rows": np.bincount(y, minlength=CLASSES + 1),
-           "class gain": np.full(CLASSES + 1, np.nan), "class se": np.full(CLASSES + 1, np.nan)}
+    out = {"rows": len(d), **_mean(d), "class rows": np.bincount(y, minlength=labels),
+           "class gain": np.full(labels, np.nan), "class se": np.full(labels, np.nan)}
     for c in np.unique(y):
         stats = _mean(d[y == c])
         out["class gain"][c], out["class se"][c] = stats["gain"], stats["se"]
@@ -49,7 +47,8 @@ def compare(registry, candidate, incumbent, look, first=None):
     if look < recipe["as_of"]:
         raise ValueError(f"the candidate was trained at {recipe['as_of']}, it can't be judged at {look}")
     first = recipe["steps"][0] if first is None else first
-    x, y, doc = dataset(Scenario(**recipe["scenario"]), first, look, recipe["labeling"], look)
+    s = stream(recipe["scenario"])
+    x, y, doc = dataset(s, first, look, recipe["labeling"], look)
     registry.store.put(canonical(doc))
     new, old = (from_bytes(registry.store.get(m)).predict(x) == y for m in (candidate, incumbent))
-    return doc, paired(new, old, y)
+    return doc, paired(new, old, y, s.labels)

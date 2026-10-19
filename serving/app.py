@@ -11,7 +11,6 @@ from spine.provenance import code, versions
 from spine.registry import fresh
 from world.labels import LABELING, Arrivals
 from world.scenarios import KINDS, Scenario
-from world.stream import CLASSES, FEATURES
 
 
 class Service:
@@ -27,13 +26,16 @@ class Service:
             raise ValueError(f"model {model} isn't registered, it can't be served")
         self.model = model
         self.estimator = from_bytes(registry.store.get(model))
+        s = registry.stream(model)
+        self.features, self.labels = s.features, s.labels
 
     def predict(self, step, x):
-        """probabilities for the rows x of `step`, as (n, CLASSES + 1), logged first.
+        """probabilities for the rows x of `step`, as (n, labels), logged first.
 
-        classes the model never saw get 0.
+        labels is how many the stream the model was trained on can give, and
+        those the model never saw get 0.
         """
-        p = np.zeros((len(x), CLASSES + 1))
+        p = np.zeros((len(x), self.labels))
         p[:, self.estimator.classes_] = self.estimator.predict_proba(x)
         self.log.served(step, x, self.model, p)
         return p
@@ -63,17 +65,18 @@ class Rows(BaseModel):
 def http(service):
     """the service over HTTP, a thin layer the pipeline itself never goes through.
 
-    POST /predict takes {"step": int, "rows": [[FEATURES floats], ...]} and
-    answers {"model": hash, "proba": [[CLASSES + 1 floats], ...]}. 422 when there
-    are no rows or a row isn't FEATURES finite numbers, 409 when the step isn't
+    POST /predict takes {"step": int, "rows": [[features floats], ...]} and
+    answers {"model": hash, "proba": [[labels floats], ...]}, with the service's
+    features and labels. 422 when there are no rows or a row isn't that many
+    finite numbers, 409 when the step isn't
     after the last one served. GET /model answers {"model": hash}.
     """
     app = FastAPI(title="driftgate")
 
     @app.post("/predict")
     def predict(request: Rows):
-        if not request.rows or any(len(row) != FEATURES for row in request.rows):
-            raise HTTPException(422, f"rows need {FEATURES} values each")
+        if not request.rows or any(len(row) != service.features for row in request.rows):
+            raise HTTPException(422, f"rows need {service.features} values each")
         x = np.array(request.rows)
         if not np.isfinite(x).all():
             raise HTTPException(422, "rows have to be finite")

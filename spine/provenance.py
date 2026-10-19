@@ -10,7 +10,6 @@ import numpy as np
 
 from world.labels import fate
 from world.scenarios import Scenario
-from world.stream import ROWS
 
 ROOT = Path(__file__).parents[1]
 
@@ -28,7 +27,12 @@ def data_hash(x, y):
     return h.hexdigest()
 
 
-def _known(recipe, step, n=ROWS):
+def stream(spec):
+    """the stream a recipe's scenario field names, rebuilt."""
+    return Scenario(**spec)
+
+
+def _known(recipe, step, n):
     # which of the n rows served at step had their label back by as_of
     labeled, arrives = fate(recipe["scenario"]["seed"], step, recipe["labeling"], n)
     return labeled & (arrives <= recipe["as_of"])
@@ -40,7 +44,7 @@ def rows(recipe):
     the rows of its scenario over steps [first, stop) whose label, under its
     labeling, had come back by step as_of. y is the label the pipeline saw.
     """
-    s = Scenario(**recipe["scenario"])
+    s = stream(recipe["scenario"])
     xs, ys = [], []
     for t in range(*recipe["steps"]):
         x, y = s.batch(t)
@@ -56,10 +60,10 @@ def row_weights(recipe):
     the recipe's weights, if it has any, are [first, stop, w] lists: the rows
     of steps in [first, stop) weigh w. every other row weighs 1.
     """
-    out = []
+    s, out = stream(recipe["scenario"]), []
     for t in range(*recipe["steps"]):
         w = next((w for first, stop, w in recipe.get("weights", []) if first <= t < stop), 1.0)
-        out.append(np.full(_known(recipe, t).sum(), float(w)))
+        out.append(np.full(_known(recipe, t, s.rows).sum(), float(w)))
     return np.concatenate(out)
 
 

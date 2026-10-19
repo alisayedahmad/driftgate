@@ -1,7 +1,5 @@
 import numpy as np
 
-from world.stream import CLASSES, FEATURES
-
 UNKNOWN = -1
 
 
@@ -19,18 +17,22 @@ class Log:
         self.models = []
         self.span = {}
         self.landings = {}
-        self.columns = {"step": np.empty(0, np.int64), "x": np.empty((0, FEATURES)),
-                        "proba": np.empty((0, CLASSES + 1)), "model": np.empty(0, np.int64),
-                        "label": np.empty(0, np.int64), "arrived": np.empty(0, np.int64)}
+        # shaped by the first rows served
+        self.columns = None
 
     def served(self, step, x, model, proba):
         """log the rows of `step`, served by model (a hash).
 
-        x is (n, FEATURES), proba (n, CLASSES + 1) with zeros for classes the
-        model doesn't know.
+        x is (n, features), proba (n, labels) with zeros for labels the model
+        doesn't know, both as wide at every step.
         """
         if self.last is not None and step <= self.last:
             raise ValueError(f"step {step} comes after {self.last}")
+        if self.columns is None:
+            self.columns = {"step": np.empty(0, np.int64), "x": np.empty((0, x.shape[1])),
+                            "proba": np.empty((0, proba.shape[1])),
+                            "model": np.empty(0, np.int64), "label": np.empty(0, np.int64),
+                            "arrived": np.empty(0, np.int64)}
         if model not in self.models:
             self.models.append(model)
         self._grow(len(x))
@@ -92,8 +94,8 @@ class Log:
         came back.
         """
         c = {name: column[:self.n] for name, column in self.columns.items()}
-        names = (["step"] + [f"x{i}" for i in range(FEATURES)]
-                 + [f"p{k}" for k in range(CLASSES + 1)] + ["model", "label", "arrived"])
+        names = (["step"] + [f"x{i}" for i in range(c["x"].shape[1])]
+                 + [f"p{k}" for k in range(c["proba"].shape[1])] + ["model", "label", "arrived"])
         rows = zip(c["step"].tolist(), *c["x"].T.tolist(), *c["proba"].T.tolist(),
                    c["model"].tolist(), c["label"].tolist(), c["arrived"].tolist())
         with db:
