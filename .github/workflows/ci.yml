@@ -34,6 +34,8 @@ jobs:
       - run: make same
       # one machine, so one CPU: whatever differs comes from the environment
       - if: success()
-        run: echo "::notice::$(lscpu | sed -n 's/^Model name: *//p'), the image computed the same bytes as the host"
+        run: |
+          echo "::notice::$(lscpu | sed -n 's/^Model name: *//p'), the image computed the same bytes as the host"
       - if: failure()
-        run: echo "::error::the image and the host computed different bytes, see diff -r build/same/host build/same/image"
+        run: |
+          echo "::error::the image and the host computed different bytes, see diff -r build/same/host build/same/image"
