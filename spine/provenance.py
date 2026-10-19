@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
+from world.gas import Gas
 from world.labels import fate
 from world.scenarios import Scenario
 
@@ -28,8 +29,8 @@ def data_hash(x, y):
 
 
 def stream(spec):
-    """the stream a recipe's scenario field names, rebuilt."""
-    return Scenario(**spec)
+    """the stream a recipe's scenario field names, rebuilt: a Scenario, or the gas data."""
+    return Gas(**spec) if spec.get("dataset") == "gas" else Scenario(**spec)
 
 
 def _known(recipe, step, n):

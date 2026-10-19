@@ -419,6 +419,17 @@ downloads it once into `~/.cache/driftgate/`, which `DRIFTGATE_DATA` can move,
 checks it against the sha256 the code was written for, and prints each batch.
 It is never committed.
 
+`world/gas.py` serves it the way a scenario is served: the batches in time
+order, a few rows a step, the first year being what the first model is
+trained on. Inside a batch the rows are shuffled once, the same way every
+time, since the archive lists the early batches gas by gas and every new gas
+would look like a change. The readings are standardized with what that first
+year showed, all that was known before serving: the synthetic world never
+needed it, its features all come on one scale, and the model never learned to
+expect otherwise. Labels come back as `world/labels.py` decides, the data
+doesn't say when they would have. A recipe names the archive by its sha256,
+so a model trained on it rebuilds from its record like any other.
+
 ## Setup
 
 You need `make` and [uv](https://docs.astral.sh/uv/). uv installs the Python
