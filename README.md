@@ -43,7 +43,7 @@ Every scenario has a twin with the same seed and no change. Both use the same
 random numbers, so their rows can be compared one by one and whatever differs
 comes from the change.
 
-Kinds so far:
+The kinds of change:
 
 - `none` is the control, nothing happens.
 - `covariate` moves the mean of one feature. How labels depend on the inputs
@@ -124,12 +124,14 @@ the sha256 of its rows plus the recipe that regenerates them: a scenario, a
 range of steps, the labeling, and the step it was known at, so that only rows
 whose label had come back by then are in it. When its rows don't all weigh the
 same, the recipe says which steps weigh what. The rows never need to be kept
-and can be checked again at any time. The code is the commit, whether the working tree had changes, and a
-hash of those changes. Configs are hashed as canonical JSON.
+and can be checked again at any time. The code is the commit, whether the
+working tree had changes, and a hash of those changes. Configs are hashed as
+canonical JSON.
 
 `spine/registry.py` keeps one record per model: the datasets it was trained
-and evaluated on, its config, the code and library versions, its metrics, the
-model that was serving when it was trained, and the simulation step. A record
+and evaluated on, its config, the code, the library versions and the CPU, its
+metrics, the model that was serving when it was trained, and the simulation
+step. A record
 can only point at things the store holds, and following the serving models
 back gives a model's lineage. There is no clock time in a record, so two
 identical runs give identical registries.
@@ -150,7 +152,7 @@ metrics have to come out the same. Each run starts a fresh registry in
 
 The results kept in `results/` say where they come from the same way: each
 directory has an `about.json` with the arguments of the run, the commit and
-any uncommitted changes it ran on, and the library versions.
+any uncommitted changes it ran on, the library versions and the CPU.
 
 ## Serving
 
@@ -188,7 +190,7 @@ log next to the run's registry.
 
 ## Monitoring
 
-`monitor/cusum.py` is the detector every signal will use: a two-sided CUSUM
+`monitor/cusum.py` is the detector every signal uses: a two-sided CUSUM
 over standardized values, one stream per feature or class, updated once a
 step. Its threshold trades how soon a real shift is caught against how often
 it fires for nothing, and the tests check both against Siegmund's
@@ -265,8 +267,8 @@ every window in a small grid, each knob moved on its own, plus one cut where
 the change really started, and judges each candidate against the serving model
 and the best possible one at the step it was trained. It prints how often each
 trigger retrained or held and how late, and what each window bought, and
-writes it all to `results/retrain/`. Nothing gets promoted yet: a candidate
-that looks better still has to prove it, which is the next part.
+writes it all to `results/retrain/`. Nothing is promoted there: a candidate
+that looks better still has to get through the gate.
 
 ## Promotion
 
@@ -290,15 +292,14 @@ granted turn out, and that kind of labeling isn't simulated.
 
 `gate/policy.py` looks once, after the candidate has shadowed the model in
 service for a few steps, and decides with what `gate/policy.toml` says
-mistakes cost. Given the rows, the
-true gain could be anywhere around the measured one; the gate weighs what
-promoting is expected to win against what it is expected to lose, a loss
-counting `penalty` times a gain. A promoted model serves just as long whether
-it turns out better or worse, so without that penalty the gate would promote
-on any gain above zero. How sure to be is a business choice, and the file is
-where to argue with it. A switch isn't free either: the new model's monitors
-start from nothing, so what promoting is expected to bring has to clear
-`switch` as well.
+mistakes cost. Given the rows, the true gain could be anywhere around the
+measured one; the gate weighs what promoting is expected to win against what
+it is expected to lose, a loss counting `penalty` times a gain. A promoted
+model serves just as long whether it turns out better or worse, so without
+that penalty the gate would promote on any gain above zero. How sure to be is
+a business choice, and the file is where to argue with it. A switch isn't free
+either: the new model's monitors start from nothing, so what promoting is
+expected to bring has to clear `switch` as well.
 
 `gate/segments.py` holds a candidate that gives up a class: one with enough
 held-out labels whose recall falls by more than a tolerance, however good the
@@ -352,11 +353,11 @@ runs every kind of scenario through the loop on seeds set aside for it, and
 puts every candidate the loop trained before five gates: the naive one, which
 compares the candidate's test accuracy with the one the incumbent was
 registered with, the paired one alone, with the penalty, with the class guard,
-and the one the loop runs with, which has both and the cost of a switch. Each
-judges after a shadow of 0 to 100 steps. Against the truth, it
-counts how often each gate promoted a candidate that was worse, missed one that
-was better, or let through one that gave up a class, and how much accuracy it
-left against a gate that knows the answer. It all goes to `results/gate/`.
+and the one the loop runs with, which has both and the cost of a switch, each
+after shadows of several lengths. Against the truth, it counts how often each
+gate promoted a candidate that was worse, missed one that was better, or let
+through one that gave up a class, and how much accuracy it left against a gate
+that knows the answer. It all goes to `results/gate/`.
 
 ```bash
 make rollout
